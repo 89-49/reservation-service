@@ -7,6 +7,7 @@ import org.pgsg.reservation.domain.exception.ReservationException;
 import org.pgsg.reservation.domain.exception.ReservationErrorCode;
 import org.pgsg.reservation.domain.model.reservationcandidate.ReservationCandidate;
 import org.pgsg.reservation.domain.model.reservationcandidate.ReservationStatus;
+import java.util.Objects;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -44,6 +45,9 @@ public class Reservation extends BaseEntity {
 
     // 예약 생성
     public static Reservation create(BuyerInfo buyer, SellerInfo seller, ProductInfo product) {
+        Objects.requireNonNull(buyer, "buyer must not be null");
+        Objects.requireNonNull(seller, "seller must not be null");
+        Objects.requireNonNull(product, "product must not be null");
         Reservation reservation = new Reservation();
         reservation.buyerInfo = buyer;
         reservation.sellerInfo = seller;
@@ -73,6 +77,9 @@ public class Reservation extends BaseEntity {
     // 다음 순번 구매자로 교체
     public void changeToNextBuyer(BuyerInfo nextBuyer) {
         validatePendingStatus();
+        if (nextBuyer == null) {
+            throw new IllegalArgumentException("nextBuyer must not be null");
+        }
         this.buyerInfo = nextBuyer;
     }
 

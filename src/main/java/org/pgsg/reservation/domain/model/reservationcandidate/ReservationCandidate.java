@@ -50,7 +50,6 @@ public class ReservationCandidate extends BaseEntity {
     private static void verify(Reservation reservation, UUID candidateId, String candidateNickname) {
         Objects.requireNonNull(reservation, "reservation must not be null");
         Objects.requireNonNull(candidateId, "candidateId must not be null");
-
         if (candidateNickname == null || candidateNickname.isBlank()) {
             throw new IllegalArgumentException("candidateNickname must not be blank");
         }
@@ -58,6 +57,7 @@ public class ReservationCandidate extends BaseEntity {
 
     // 후보 선정: 판매자가 후보를 구매자로 최종 선택했을 때 사용
     public void selected() {
+        validateReservationPendingStatus();
         if (this.status != SelectStatus.WAITING) {
             throw new ReservationException(ReservationErrorCode.CANNOT_CHANGE_STATUS);
         }
@@ -72,5 +72,10 @@ public class ReservationCandidate extends BaseEntity {
         this.status = SelectStatus.CANCELLED;
     }
 
-
+    // Reservation에서 예약 상태(PENDING)이어야 후보자 선정 가능
+    private void validateReservationPendingStatus() {
+        if (this.reservation == null || this.reservation.getStatus() != ReservationStatus.PENDING) {
+            throw new ReservationException(ReservationErrorCode.CANNOT_CHANGE_STATUS);
+        }
+    }
 }
