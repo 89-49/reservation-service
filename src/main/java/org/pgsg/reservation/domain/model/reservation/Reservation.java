@@ -38,8 +38,6 @@ public class Reservation extends BaseEntity {
     @Embedded
     private ProductInfo productInfo;
 
-    private String cancelInfo; // 초기값 null
-
     // 예약 후보자들
     @OneToMany(mappedBy = "reservation", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ReservationCandidate> candidates = new ArrayList<>();
@@ -70,7 +68,6 @@ public class Reservation extends BaseEntity {
     public void cancel(String reason) {
         validatePendingStatus();
         this.status = ReservationStatus.CANCELLED;
-        this.cancelInfo = reason;
     }
 
     // 다음 순번 구매자로 교체
