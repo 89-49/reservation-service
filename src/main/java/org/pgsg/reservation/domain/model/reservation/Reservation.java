@@ -22,6 +22,10 @@ public class Reservation extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    //낙관적 락을 위한 버전 추가(추후 분산 락으로 수정예정)
+    @Version
+    private Long version;
+
     @Enumerated(EnumType.STRING)
     private ReservationStatus status;
 
@@ -71,6 +75,7 @@ public class Reservation extends BaseEntity {
 
     // 다음 순번 구매자로 교체
     public void changeToNextBuyer(BuyerInfo nextBuyer) {
+        validatePendingStatus();
         this.buyerInfo = nextBuyer;
     }
 
