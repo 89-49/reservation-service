@@ -4,7 +4,7 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
-import org.pgsg.reservation.domain.model.reservation.Reservation;
+import org.pgsg.reservation.application.dto.result.ReservationCreateResult;
 
 import java.util.UUID;
 
@@ -16,10 +16,10 @@ public class ReservationResponse {
     private UUID reservationId;
     private String status;
 
-    public static ReservationResponse from(Reservation reservation) {
+    public static ReservationResponse from(ReservationCreateResult result) {
         return ReservationResponse.builder()
-                .reservationId(reservation.getId())
-                .status(reservation.getStatus().name())
+                .reservationId(result.getReservationId())
+                .status(result.getStatus())
                 .build();
     }
 }

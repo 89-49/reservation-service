@@ -8,6 +8,7 @@ import lombok.Getter;
 public enum ReservationErrorCode {
 
     // 400 Bad Request
+    INVALID_INPUT(400, "입력값이 누락되었습니다."),
     INVALID_STATUS(400, "잘못된 예약 상태입니다."),
     INVALID_SELECT_STATUS(400, "잘못된 선정 상태입니다."),
     CANNOT_CHANGE_STATUS(400, "현재 상태에서는 변경할 수 없는 요청입니다."),

@@ -19,6 +19,7 @@ public class ReservationService {
     private final ReservationDomainService reservationDomainService;
     // private final ProductClient productClient; // 추후 구현 예정
 
+    // 도메인 서비스 호출 전까지의 작업은 트랜잭션 밖으로 분리(추후 고도화 작업시)
     @Transactional
     public ReservationCreateResult createReservation(ReservationCreateCommand command) {
 
@@ -41,6 +42,8 @@ public class ReservationService {
 
         // 도메인 서비스 호출
         Reservation reservation = reservationDomainService.createReservation(buyer, seller, product);
+
+        // ransaction outbox 패턴에 기반한 이벤트 발송 로직 추가 예정
 
         // DB 저장
         Reservation savedReservation = reservationRepository.save(reservation);
