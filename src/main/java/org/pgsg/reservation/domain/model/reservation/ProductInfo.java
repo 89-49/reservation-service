@@ -1,0 +1,15 @@
+package org.pgsg.reservation.domain.model.reservation;
+
+import jakarta.persistence.Embeddable;
+import lombok.*;
+import java.util.UUID;
+
+@Embeddable
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(staticName = "of")
+public class ProductInfo {
+    private UUID productId;
+    private Integer productPrice;
+    private String productName;
+}
