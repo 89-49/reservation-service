@@ -14,6 +14,10 @@ public class ReservationValidator {
             throw new ReservationException(ReservationErrorCode.INVALID_INPUT);
         }
 
+        if (buyer.getBuyerId() == null || seller.getSellerId() == null) {
+            throw new ReservationException(ReservationErrorCode.INVALID_INPUT);
+        }
+
         // 본인 상품 예약 금지 규칙
         if (isSamePerson(buyer, seller)) {
             throw new ReservationException(ReservationErrorCode.INVALID_STATUS);
