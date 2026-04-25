@@ -10,6 +10,7 @@ import org.pgsg.reservation.domain.model.reservationcandidate.ReservationStatus;
 import java.util.Objects;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -43,6 +44,20 @@ public class Reservation extends BaseEntity {
     @OneToMany(mappedBy = "reservation", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ReservationCandidate> candidates = new ArrayList<>();
 
+    public List<ReservationCandidate> getCandidates() {
+        return Collections.unmodifiableList(candidates);
+    }
+
+    public void addCandidate(ReservationCandidate candidate) {
+        validatePendingStatus();
+        this.candidates.add(candidate);
+    }
+
+    public void removeCandidate(ReservationCandidate candidate) {
+        validatePendingStatus();
+        this.candidates.remove(candidate);
+    }
+
     // 예약 생성
     public static Reservation create(BuyerInfo buyer, SellerInfo seller, ProductInfo product) {
         Objects.requireNonNull(buyer, "buyer must not be null");
@@ -69,18 +84,29 @@ public class Reservation extends BaseEntity {
     }
 
     // 예약 취소: 취소 사유 업데이트 포함
-    public void cancel(String reason) {
+    public void cancel() {
         validatePendingStatus();
         this.status = ReservationStatus.CANCELLED;
     }
 
     // 다음 순번 구매자로 교체
-    public void changeToNextBuyer(BuyerInfo nextBuyer) {
+    public void changeToNextBuyer(ReservationCandidate nextCandidate) {
+        // 예약 자체가 변경 가능한 상태인지 확인
         validatePendingStatus();
-        if (nextBuyer == null) {
+        // 인자 유효성 검사
+        if (nextCandidate == null) {
             throw new IllegalArgumentException("nextBuyer must not be null");
         }
-        this.buyerInfo = nextBuyer;
+        // 해당 후보자가 실제 이 예약의 후보 명단에 포함되어 있는지 검증
+        if (!this.candidates.contains(nextCandidate)) {
+            throw new ReservationException(ReservationErrorCode.INVALID_STATUS); // 혹은 "후보자가 아닙니다" 에러
+        }
+        // 후보자의 상태가 '대기' 중인지 확인
+        if (nextCandidate.getStatus() != SelectStatus.WAITING) {
+            throw new ReservationException(ReservationErrorCode.CANNOT_CHANGE_STATUS);
+        }
+        // 검증 완료 후 구매자 정보 교체
+        this.buyerInfo = BuyerInfo.of(nextCandidate.getCandidateId(), nextCandidate.getCandidateNickname());
     }
 
     private void validatePendingStatus() {
