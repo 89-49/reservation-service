@@ -105,6 +105,7 @@ public class Reservation extends BaseEntity {
         if (nextCandidate.getStatus() != SelectStatus.WAITING) {
             throw new ReservationException(ReservationErrorCode.CANNOT_CHANGE_STATUS);
         }
+        nextCandidate.selected();
         // 검증 완료 후 구매자 정보 교체
         this.buyerInfo = BuyerInfo.of(nextCandidate.getCandidateId(), nextCandidate.getCandidateNickname());
     }
