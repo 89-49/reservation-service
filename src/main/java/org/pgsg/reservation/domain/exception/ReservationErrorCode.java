@@ -13,6 +13,9 @@ public enum ReservationErrorCode {
     INVALID_SELECT_STATUS(400, "잘못된 선정 상태입니다."),
     CANNOT_CHANGE_STATUS(400, "현재 상태에서는 변경할 수 없는 요청입니다."),
 
+    // 401 Unauthorized / 403 Forbidden
+    UNAUTHORIZED_ACCESS(403, "해당 요청에 대한 접근 권한이 없습니다."),
+
     // 404 Not Found
     RESERVATION_NOT_FOUND(404, "해당 예약을 찾을 수 없습니다."),
 

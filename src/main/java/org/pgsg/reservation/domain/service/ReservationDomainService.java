@@ -1,11 +1,13 @@
 package org.pgsg.reservation.domain.service;
 
 import lombok.RequiredArgsConstructor;
-import org.pgsg.reservation.domain.model.reservation.Reservation;
-import org.pgsg.reservation.domain.model.reservation.BuyerInfo;
-import org.pgsg.reservation.domain.model.reservation.SellerInfo;
-import org.pgsg.reservation.domain.model.reservation.ProductInfo;
+import org.pgsg.reservation.domain.exception.ReservationErrorCode;
+import org.pgsg.reservation.domain.exception.ReservationException;
+import org.pgsg.reservation.domain.model.reservation.*;
 import org.springframework.stereotype.Service;
+
+import java.util.Locale;
+import java.util.UUID;
 
 
 @Service
@@ -23,5 +25,27 @@ public class ReservationDomainService {
         reservationValidator.validate(buyer, seller, product);
 
         return Reservation.create(buyer, seller, product);
+    }
+
+    /**
+     * 예약 목록 조회 정책 획득 로직
+     * 권한에 따른 조회 범위를 검증하고 정책(Policy)을 결정
+     */
+    public SearchPolicy getReservations(UUID userId, String role) {
+        // 권한 데이터가 비어있는지 검증
+        reservationValidator.validateSearchRequest(userId, role);
+
+        // 역할에 따른 필터링
+        String normalizedRole = role.trim().toUpperCase(Locale.ROOT);
+        if ("ADMIN".equals(normalizedRole)) {
+            return new SearchPolicy(userId, false, false);
+        }
+        if ("SELLER".equals(normalizedRole)) {
+            return new SearchPolicy(userId, false, true);
+        }
+        if ("BUYER".equals(normalizedRole)) {
+            return new SearchPolicy(userId, true, false);
+        }
+        throw new ReservationException(ReservationErrorCode.UNAUTHORIZED_ACCESS);
     }
 }

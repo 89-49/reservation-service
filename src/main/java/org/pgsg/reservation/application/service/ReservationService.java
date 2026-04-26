@@ -2,10 +2,14 @@ package org.pgsg.reservation.application.service;
 
 import lombok.RequiredArgsConstructor;
 import org.pgsg.reservation.application.dto.command.ReservationCreateCommand;
+import org.pgsg.reservation.application.dto.query.ReservationSearchQuery;
 import org.pgsg.reservation.application.dto.result.ReservationCreateResult;
+import org.pgsg.reservation.application.dto.result.ReservationSearchResult;
 import org.pgsg.reservation.domain.model.reservation.*;
 import org.pgsg.reservation.domain.service.ReservationDomainService;
 import org.pgsg.reservation.domain.repository.ReservationRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -53,5 +57,20 @@ public class ReservationService {
                 .reservationId(savedReservation.getId())
                 .status(savedReservation.getStatus().name())
                 .build();
+    }
+
+    // 예약 목록 조회
+    @Transactional(readOnly = true)
+    public Page<ReservationSearchResult> getSearchReservations(
+            UUID userId,
+            String role,
+            ReservationSearchQuery query,
+            Pageable pageable
+    ) {
+        // 권한에 따른 조회 범위 결정 로직을 도메인 모델로 전달
+        SearchPolicy policy = reservationDomainService.getReservations(userId, role);
+
+        // Repository(QueryDSL)에 정책과 검색 조건을 함께 전달
+        return reservationRepository.searchReservations(policy, query, pageable);
     }
 }
