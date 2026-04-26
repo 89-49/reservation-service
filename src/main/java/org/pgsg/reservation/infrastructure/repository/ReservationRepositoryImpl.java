@@ -91,8 +91,9 @@ public class ReservationRepositoryImpl implements ReservationRepository {
     }
 
     private BooleanExpression productNameContains(String productName) {
-        return (productName != null && !productName.isEmpty())
-                ? reservation.getString("productInfo.productName").containsIgnoreCase(productName)
+        String normalized = productName == null ? null : productName.trim();
+        return (normalized != null && !normalized.isBlank())
+                ? reservation.getString("productInfo.productName").containsIgnoreCase(normalized)
                 : null;
     }
 
@@ -103,14 +104,18 @@ public class ReservationRepositoryImpl implements ReservationRepository {
     }
 
     private BooleanExpression sellerNameEq(String sellerName) {
-        return (sellerName != null && !sellerName.isEmpty())
-                ? reservation.getString("sellerInfo.sellerName").containsIgnoreCase(sellerName)
+        String normalized = sellerName == null ? null : sellerName.trim();
+        return (normalized != null && !normalized.isBlank())
+                ? reservation.getString("sellerInfo.sellerName").containsIgnoreCase(normalized)
                 : null;
     }
 
     private BooleanExpression buyerNameEq(String buyerName) {
-        return (buyerName != null && !buyerName.isEmpty())
-                ? reservation.getString("buyerInfo.buyerName").containsIgnoreCase(buyerName)
+        String normalized = buyerName == null ? null : buyerName.trim();
+        return (normalized != null && !normalized.isBlank())
+                ? reservation.getString("buyerInfo.buyerName").containsIgnoreCase(normalized)
+                : null;
+    }
                 : null;
     }
 }
