@@ -1,6 +1,6 @@
 package org.pgsg.reservation.application.dto.result;
 
-import org.pgsg.reservation.domain.model.reservationcandidate.ReservationStatus;
+import org.pgsg.reservation.domain.model.reservation.ReservationStatus;
 
 import java.time.LocalDateTime;
 import java.util.UUID;

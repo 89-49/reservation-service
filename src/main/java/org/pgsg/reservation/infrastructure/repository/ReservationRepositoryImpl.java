@@ -9,7 +9,7 @@ import org.pgsg.reservation.application.dto.query.ReservationSearchQuery;
 import org.pgsg.reservation.application.dto.result.ReservationSearchResult;
 import org.pgsg.reservation.domain.model.reservation.Reservation;
 import org.pgsg.reservation.domain.model.reservation.SearchPolicy;
-import org.pgsg.reservation.domain.model.reservationcandidate.ReservationStatus;
+import org.pgsg.reservation.domain.model.reservation.ReservationStatus;
 import org.pgsg.reservation.domain.repository.ReservationRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -106,16 +106,14 @@ public class ReservationRepositoryImpl implements ReservationRepository {
     private BooleanExpression sellerNameEq(String sellerName) {
         String normalized = sellerName == null ? null : sellerName.trim();
         return (normalized != null && !normalized.isBlank())
-                ? get("sellerInfo").getString("sellerName").containsIgnoreCase(sellerName)
+                ? reservation.get("sellerInfo").getString("sellerName").containsIgnoreCase(sellerName)
                 : null;
     }
 
     private BooleanExpression buyerNameEq(String buyerName) {
         String normalized = buyerName == null ? null : buyerName.trim();
         return (normalized != null && !normalized.isBlank())
-                ? get("buyerInfo").getString("buyerName").containsIgnoreCase(buyerName)
-                : null;
-    }
+                ? reservation.get("buyerInfo").getString("buyerName").containsIgnoreCase(buyerName)
                 : null;
     }
 }

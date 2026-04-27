@@ -6,7 +6,8 @@ import org.pgsg.common.domain.BaseEntity;
 import org.pgsg.reservation.domain.exception.ReservationException;
 import org.pgsg.reservation.domain.exception.ReservationErrorCode;
 import org.pgsg.reservation.domain.model.reservationcandidate.ReservationCandidate;
-import org.pgsg.reservation.domain.model.reservationcandidate.ReservationStatus;
+import org.pgsg.reservation.domain.model.reservationcandidate.ReservationCandidateStatus;
+
 import java.util.Objects;
 
 import java.util.ArrayList;
@@ -49,12 +50,12 @@ public class Reservation extends BaseEntity {
     }
 
     public void addCandidate(ReservationCandidate candidate) {
-        validatePendingStatus();
+        validateStatus(ReservationStatus.PENDING);
         this.candidates.add(candidate);
     }
 
     public void removeCandidate(ReservationCandidate candidate) {
-        validatePendingStatus();
+        validateStatus(ReservationStatus.PENDING);
         this.candidates.remove(candidate);
     }
 
@@ -71,38 +72,52 @@ public class Reservation extends BaseEntity {
         return reservation;
     }
 
-    // 예약 완료: PENDING 상태일 때만 가능
+    // 결제 완료: PENDING 상태일 때만 가능
+    public void markAsPaid() {
+        validateStatus(ReservationStatus.PENDING);
+        this.status = ReservationStatus.PAID;
+    }
+
+    // 예약 완료: PAID(결제 완료) 상태일 때만 가능
     public void complete() {
-        validatePendingStatus();
+        validateStatus(ReservationStatus.PAID);
         this.status = ReservationStatus.COMPLETED;
     }
 
     // 예약 만료: PENDING 상태일 때만 가능
+    public void rollbackToPending() {
+        validateStatus(ReservationStatus.COMPLETED);
+        this.status = ReservationStatus.PENDING;
+        // 추후 기존 구매자의 후보자 상태를 'CANCELLED'로 바꾸는 로직 추가 예정
+    }
+
+    // 시간 만료: PENDING 상태일 때만 가능
     public void expire() {
-        validatePendingStatus();
+        validateStatus(ReservationStatus.PENDING);
         this.status = ReservationStatus.EXPIRED;
     }
 
     // 예약 취소: 취소 사유 업데이트 포함
     public void cancel() {
-        validatePendingStatus();
+        validateStatus(ReservationStatus.PENDING);
         this.status = ReservationStatus.CANCELLED;
     }
 
     // 다음 순번 구매자로 교체
     public void changeToNextBuyer(ReservationCandidate nextCandidate) {
         // 예약 자체가 변경 가능한 상태인지 확인
-        validatePendingStatus();
+        validateStatus(ReservationStatus.PENDING);
+
         // 인자 유효성 검사
         if (nextCandidate == null) {
             throw new IllegalArgumentException("nextBuyer must not be null");
         }
         // 해당 후보자가 실제 이 예약의 후보 명단에 포함되어 있는지 검증
         if (!this.candidates.contains(nextCandidate)) {
-            throw new ReservationException(ReservationErrorCode.INVALID_STATUS); // 혹은 "후보자가 아닙니다" 에러
+            throw new ReservationException(ReservationErrorCode.INVALID_STATUS);
         }
         // 후보자의 상태가 '대기' 중인지 확인
-        if (nextCandidate.getStatus() != SelectStatus.WAITING) {
+        if (nextCandidate.getStatus() != ReservationCandidateStatus.WAITING) {
             throw new ReservationException(ReservationErrorCode.CANNOT_CHANGE_STATUS);
         }
         nextCandidate.selected();
@@ -110,9 +125,15 @@ public class Reservation extends BaseEntity {
         this.buyerInfo = BuyerInfo.of(nextCandidate.getCandidateId(), nextCandidate.getCandidateNickname());
     }
 
-    private void validatePendingStatus() {
-        if (this.status != ReservationStatus.PENDING) {
+    private void validateStatus(ReservationStatus expectedStatus) {
+        // 결제가 취소이면 변경 불가
+        if (this.status == ReservationStatus.CANCELLED) {
+            throw new ReservationException(ReservationErrorCode.CANNOT_CHANGE_STATUS);
+        }
+
+        if (this.status != expectedStatus) {
             throw new ReservationException(ReservationErrorCode.CANNOT_CHANGE_STATUS);
         }
     }
+
 }

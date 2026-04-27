@@ -6,7 +6,7 @@ import org.pgsg.common.domain.BaseEntity;
 import org.pgsg.reservation.domain.exception.ReservationErrorCode;
 import org.pgsg.reservation.domain.exception.ReservationException;
 import org.pgsg.reservation.domain.model.reservation.Reservation;
-import org.pgsg.reservation.domain.model.reservation.SelectStatus;
+import org.pgsg.reservation.domain.model.reservation.ReservationStatus;
 import java.util.Objects;
 
 import java.util.UUID;
@@ -34,7 +34,7 @@ public class ReservationCandidate extends BaseEntity {
     private String candidateNickname; // 후보자 닉네임
 
     @Enumerated(EnumType.STRING)
-    private SelectStatus status = SelectStatus.WAITING;
+    private ReservationCandidateStatus status = ReservationCandidateStatus.WAITING;
 
     // 예약 후보 생성
     public static ReservationCandidate of(Reservation reservation, UUID candidateId, String candidateNickname) {
@@ -58,18 +58,18 @@ public class ReservationCandidate extends BaseEntity {
     // 후보 선정: 판매자가 후보를 구매자로 최종 선택했을 때 사용
     public void selected() {
         validateReservationPendingStatus();
-        if (this.status != SelectStatus.WAITING) {
+        if (this.status != ReservationCandidateStatus.WAITING) {
             throw new ReservationException(ReservationErrorCode.CANNOT_CHANGE_STATUS);
         }
-        this.status = SelectStatus.SELECTED;
+        this.status = ReservationCandidateStatus.SELECTED;
     }
 
     // 후보 취소: 후보자가 대기를 철회하거나 선정에서 제외될 때 사용
     public void cancel() {
-        if (this.status == SelectStatus.CANCELLED) {
+        if (this.status == ReservationCandidateStatus.CANCELLED) {
             throw new ReservationException(ReservationErrorCode.CANNOT_CHANGE_STATUS);
         }
-        this.status = SelectStatus.CANCELLED;
+        this.status = ReservationCandidateStatus.CANCELLED;
     }
 
     // Reservation에서 예약 상태(PENDING)이어야 후보자 선정 가능
