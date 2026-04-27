@@ -6,4 +6,5 @@ public record SearchPolicy(
         UUID accessUserId,
         boolean isBuyerFilter,
         boolean isSellerFilter
-) {}
+) {
+}

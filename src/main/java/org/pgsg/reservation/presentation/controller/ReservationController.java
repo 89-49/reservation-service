@@ -6,16 +6,20 @@ import org.pgsg.reservation.application.dto.command.ReservationCreateCommand;
 import org.pgsg.reservation.application.dto.query.ReservationSearchQuery;
 import org.pgsg.reservation.application.dto.result.ReservationCreateResult;
 import org.pgsg.reservation.application.service.ReservationService;
+import org.pgsg.reservation.domain.model.reservation.SearchPolicy;
 import org.pgsg.reservation.presentation.dto.request.ReservationCreateRequest;
 import org.pgsg.reservation.presentation.dto.request.ReservationSearchRequest;
+import org.pgsg.reservation.presentation.dto.response.ReservationDetailResponse;
 import org.pgsg.reservation.presentation.dto.response.ReservationResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.nio.file.attribute.UserPrincipal;
 import java.util.UUID;
 
 @RestController
@@ -70,5 +74,18 @@ public class ReservationController {
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(responses);
+    }
+
+    // 예약 상세 목록 조회
+    @GetMapping("/{reservationId}")
+    public ResponseEntity<ReservationDetailResponse> getReservationDetail(
+            @PathVariable UUID reservationId,
+            @RequestHeader("X-User-Id") UUID userId,
+            @RequestHeader("X-User-Role") String role
+    ) {
+
+        ReservationDetailResponse response = reservationService.getReservationDetail(reservationId, userId, role);
+
+        return ResponseEntity.ok(response);
     }
 }

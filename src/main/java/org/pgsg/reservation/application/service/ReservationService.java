@@ -8,6 +8,7 @@ import org.pgsg.reservation.application.dto.result.ReservationSearchResult;
 import org.pgsg.reservation.domain.model.reservation.*;
 import org.pgsg.reservation.domain.service.ReservationDomainService;
 import org.pgsg.reservation.domain.repository.ReservationRepository;
+import org.pgsg.reservation.presentation.dto.response.ReservationDetailResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -72,5 +73,19 @@ public class ReservationService {
 
         // Repository(QueryDSL)에 정책과 검색 조건을 함께 전달
         return reservationRepository.searchReservations(policy, query, pageable);
+    }
+    
+    
+    // 예약 상세 조회
+    @Transactional(readOnly = true)
+    public ReservationDetailResponse getReservationDetail(UUID reservationId, UUID userId, String role) {
+        // 엔티티 조회
+        Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new RuntimeException("해당 예약을 찾을 수 없습니다. ID: " + reservationId));
+
+        // 도메인 서비스를 통한 권한 검증
+        reservationDomainService.validateDetailAccess(reservation, userId, role);
+
+        return ReservationDetailResponse.from(reservation);
     }
 }

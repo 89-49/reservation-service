@@ -1,4 +1,3 @@
-rootProject.name = 'reservation-service'
-
+rootProject.name = 'reservation-root'
 include ':common'
 project(':common').projectDir = new File(settingsDir, 'libs/common')

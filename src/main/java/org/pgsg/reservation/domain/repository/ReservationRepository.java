@@ -7,6 +7,9 @@ import org.pgsg.reservation.domain.model.reservation.SearchPolicy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.util.Optional;
+import java.util.UUID;
+
 public interface ReservationRepository {
     Reservation save(Reservation reservation);
 
@@ -16,4 +19,6 @@ public interface ReservationRepository {
             ReservationSearchQuery query,
             Pageable pageable
     );
+
+    Optional<Reservation> findById(UUID id);
 }

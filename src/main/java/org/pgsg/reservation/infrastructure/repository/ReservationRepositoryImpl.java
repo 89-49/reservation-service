@@ -17,6 +17,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -32,6 +33,11 @@ public class ReservationRepositoryImpl implements ReservationRepository {
     @Override
     public Reservation save(Reservation reservationEntity) {
         return reservationJpaRepository.save(reservationEntity);
+    }
+
+    @Override
+    public Optional<Reservation> findById(UUID id) {
+        return reservationJpaRepository.findById(id);
     }
 
     @Override
