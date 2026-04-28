@@ -5,9 +5,11 @@ import org.pgsg.reservation.application.dto.command.ReservationCreateCommand;
 import org.pgsg.reservation.application.dto.query.ReservationSearchQuery;
 import org.pgsg.reservation.application.dto.result.ReservationCreateResult;
 import org.pgsg.reservation.application.dto.result.ReservationSearchResult;
+import org.pgsg.reservation.domain.dto.ReservationSearchCriteria;
 import org.pgsg.reservation.domain.model.reservation.*;
 import org.pgsg.reservation.domain.service.ReservationDomainService;
 import org.pgsg.reservation.domain.repository.ReservationRepository;
+import org.pgsg.reservation.presentation.dto.response.ReservationDetailResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -52,7 +54,7 @@ public class ReservationService {
         // DB 저장
         Reservation savedReservation = reservationRepository.save(reservation);
 
-        // 5. [결과 반환] Result DTO로 변환하여 Controller로 전달
+        // Result DTO로 변환하여 Controller로 전달
         return ReservationCreateResult.builder()
                 .reservationId(savedReservation.getId())
                 .status(savedReservation.getStatus().name())
@@ -70,7 +72,34 @@ public class ReservationService {
         // 권한에 따른 조회 범위 결정 로직을 도메인 모델로 전달
         SearchPolicy policy = reservationDomainService.getReservations(userId, role);
 
+        ReservationSearchCriteria criteria = new ReservationSearchCriteria(
+                query.sellerName(),
+                query.buyerName(),
+                query.productName(),
+                query.status(),
+                query.productId(),
+                null, // startDateTime
+                null, // endDateTime
+                policy
+        );
+
+        Page<Reservation> reservations = reservationRepository.findByCriteria(criteria, pageable);
+
         // Repository(QueryDSL)에 정책과 검색 조건을 함께 전달
-        return reservationRepository.searchReservations(policy, query, pageable);
+        return reservations.map(ReservationSearchResult::from);
+    }
+    
+    
+    // 예약 상세 조회
+    @Transactional(readOnly = true)
+    public ReservationDetailResponse getReservationDetail(UUID reservationId, UUID userId, String role) {
+        // 엔티티 조회
+        Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new RuntimeException("해당 예약을 찾을 수 없습니다. ID: " + reservationId));
+
+        // 도메인 서비스를 통한 권한 검증
+        reservationDomainService.validateDetailAccess(reservation, userId, role);
+
+        return ReservationDetailResponse.from(reservation);
     }
 }

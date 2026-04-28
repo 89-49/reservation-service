@@ -48,4 +48,26 @@ public class ReservationDomainService {
         }
         throw new ReservationException(ReservationErrorCode.UNAUTHORIZED_ACCESS);
     }
+
+    /**
+     * 상세 조회 권한 검증
+     * 특정 사용자가 해당 예약에 접근할 수 있는지 비즈니스 규칙 검사
+     */
+    public void validateDetailAccess(Reservation reservation, UUID userId, String role) {
+        // 정책 획득
+        SearchPolicy policy = this.getReservations(userId, role);
+
+        // 관리자 판단 로직
+        boolean isAdmin = !policy.isBuyerFilter() && !policy.isSellerFilter();
+
+        if (!isAdmin) {
+            // 본인 확인 (구매자 혹은 판매자 본인인지 체크)
+            boolean isOwner = reservation.getBuyerInfo().getBuyerId().equals(userId) ||
+                    reservation.getSellerInfo().getSellerId().equals(userId);
+
+            if (!isOwner) {
+                throw new RuntimeException("해당 예약을 조회할 권한이 없습니다.");
+            }
+        }
+    }
 }
