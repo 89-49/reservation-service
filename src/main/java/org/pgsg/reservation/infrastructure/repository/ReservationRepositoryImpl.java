@@ -1,12 +1,10 @@
 package org.pgsg.reservation.infrastructure.repository;
 
-import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.PathBuilder;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
-import org.pgsg.reservation.application.dto.query.ReservationSearchQuery;
-import org.pgsg.reservation.application.dto.result.ReservationSearchResult;
+import org.pgsg.reservation.domain.dto.ReservationSearchCriteria;
 import org.pgsg.reservation.domain.model.reservation.Reservation;
 import org.pgsg.reservation.domain.model.reservation.SearchPolicy;
 import org.pgsg.reservation.domain.model.reservation.ReservationStatus;
@@ -41,32 +39,23 @@ public class ReservationRepositoryImpl implements ReservationRepository {
     }
 
     @Override
-    public Page<ReservationSearchResult> searchReservations(
-            SearchPolicy policy,
-            ReservationSearchQuery query,
+    public Page<Reservation> findByCriteria(
+            ReservationSearchCriteria criteria,
             Pageable pageable
     ) {
         // 검색 조건 공통화
         BooleanExpression[] predicates = {
-                applyPolicyFilter(policy),
-                statusEq(query.status()),
-                productNameContains(query.productName()),
-                productIdEq(query.productId()),
-                sellerNameEq(query.sellerName()),
-                buyerNameEq(query.buyerName())
+                applyPolicyFilter(criteria.policy()),
+                statusEq(criteria.status()),
+                productNameContains(criteria.productName()),
+                productIdEq(criteria.productId()),
+                sellerNameEq(criteria.sellerName()),
+                buyerNameEq(criteria.buyerName())
         };
 
-        List<ReservationSearchResult> content = queryFactory
-                .select(Projections.constructor(ReservationSearchResult.class,
-                        reservation.get("id", UUID.class),
-                        reservation.get("productInfo").get("productName", String.class),
-                        reservation.get("sellerInfo").get("sellerName", String.class),
-                        reservation.get("buyerInfo").get("buyerName", String.class),
-                        reservation.get("status", ReservationStatus.class),
-                        reservation.get("createdAt", java.time.LocalDateTime.class)
-                ))
-                .from(reservation)
-                .where(predicates) // 정리된 조건 적용
+        List<Reservation> content = queryFactory
+                .selectFrom(reservation)
+                .where(predicates)
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .orderBy(reservation.getDateTime("createdAt", java.time.LocalDateTime.class).desc())
@@ -99,7 +88,7 @@ public class ReservationRepositoryImpl implements ReservationRepository {
     private BooleanExpression productNameContains(String productName) {
         String normalized = productName == null ? null : productName.trim();
         return (normalized != null && !normalized.isBlank())
-                ? reservation.get("productInfo").getString("productName").containsIgnoreCase(productName)
+                ? reservation.get("productInfo").getString("productName").containsIgnoreCase(normalized)
                 : null;
     }
 
@@ -112,14 +101,14 @@ public class ReservationRepositoryImpl implements ReservationRepository {
     private BooleanExpression sellerNameEq(String sellerName) {
         String normalized = sellerName == null ? null : sellerName.trim();
         return (normalized != null && !normalized.isBlank())
-                ? reservation.get("sellerInfo").getString("sellerName").containsIgnoreCase(sellerName)
+                ? reservation.get("sellerInfo").getString("sellerName").containsIgnoreCase(normalized)
                 : null;
     }
 
     private BooleanExpression buyerNameEq(String buyerName) {
         String normalized = buyerName == null ? null : buyerName.trim();
         return (normalized != null && !normalized.isBlank())
-                ? reservation.get("buyerInfo").getString("buyerName").containsIgnoreCase(buyerName)
+                ? reservation.get("buyerInfo").getString("buyerName").containsIgnoreCase(normalized)
                 : null;
     }
 }

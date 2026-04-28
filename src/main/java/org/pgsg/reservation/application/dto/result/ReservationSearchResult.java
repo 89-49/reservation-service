@@ -1,5 +1,6 @@
 package org.pgsg.reservation.application.dto.result;
 
+import org.pgsg.reservation.domain.model.reservation.Reservation;
 import org.pgsg.reservation.domain.model.reservation.ReservationStatus;
 
 import java.time.LocalDateTime;
@@ -13,4 +14,14 @@ public record ReservationSearchResult(
         ReservationStatus status, // 도메인 Enum 직접 사용
         LocalDateTime createdAt
 ) {
+    public static ReservationSearchResult from(Reservation reservation) {
+        return new ReservationSearchResult(
+                reservation.getId(),
+                reservation.getProductInfo().getProductName(),
+                reservation.getSellerInfo().getSellerName(),
+                reservation.getBuyerInfo().getBuyerName(),
+                reservation.getStatus(),
+                reservation.getCreatedAt()
+        );
+    }
 }

@@ -28,7 +28,7 @@ public record ReservationDetailResponse(
 
     public record BuyerDetailInfo(
             UUID buyerId,
-            String buyerNickname
+            String buyerName
     ) {}
 
     public static ReservationDetailResponse from(Reservation reservation) {
