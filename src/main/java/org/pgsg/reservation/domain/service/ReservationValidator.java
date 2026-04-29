@@ -4,6 +4,7 @@ import org.pgsg.reservation.domain.model.reservation.*;
 import org.pgsg.reservation.domain.exception.*;
 import org.springframework.stereotype.Component;
 
+import java.util.Objects;
 import java.util.UUID;
 
 @Component
@@ -37,17 +38,24 @@ public class ReservationValidator {
 
     // 취소 권한 및 상태 검증
     public void validateCancel(Reservation reservation, UUID userId) {
-        // 권한 확인 (구매자 혹은 판매자인지)
+        // 예약 객체 자체나 유저 ID가 없는 경우
+        if (reservation == null || userId == null) {
+            throw new ReservationException(ReservationErrorCode.INVALID_INPUT);
+        }
+
+        // 권한 확인 (판매자 or 구매자 인지)
         boolean isBuyer = reservation.getBuyerInfo() != null &&
-                reservation.getBuyerInfo().getBuyerId().equals(userId);
-        boolean isSeller = reservation.getSellerInfo().getSellerId().equals(userId);
+                Objects.equals(reservation.getBuyerInfo().getBuyerId(), userId);
+
+        boolean isSeller = reservation.getSellerInfo() != null &&
+                Objects.equals(reservation.getSellerInfo().getSellerId(), userId);
 
         if (!isBuyer && !isSeller) {
             throw new ReservationException(ReservationErrorCode.UNAUTHORIZED_ACCESS);
         }
 
         // 상태 확인 (취소 가능한 상태인지)
-        if (!reservation.getStatus().isMutable()) {
+        if (reservation.getStatus() == null || !reservation.getStatus().isMutable()) {
             throw new ReservationException(ReservationErrorCode.CANNOT_CHANGE_STATUS);
         }
     }
