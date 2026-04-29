@@ -118,8 +118,14 @@ public class ReservationService {
         ReservationCandidate candidate = reservationDomainService.addCandidate(reservation, userId, nickname);
 
         // 변경사항 저장
-        reservationRepository.save(reservation);
+        Reservation savedReservation = reservationRepository.saveAndFlush(reservation);
 
-        return ReservationCandidateResponse.from(candidate);
+        // 방금 저장된 예약에서 추하한 후보자 찾기
+        ReservationCandidate savedCandidate = savedReservation.getCandidates().stream()
+                .filter(c -> c.getCandidateId().equals(userId))
+                .findFirst()
+                .orElse(candidate);
+
+        return ReservationCandidateResponse.from(savedCandidate);
     }
 }
