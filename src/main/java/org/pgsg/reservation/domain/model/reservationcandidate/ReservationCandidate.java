@@ -15,8 +15,8 @@ import java.util.UUID;
 @Getter
 @Table(name = "p_reservation_candidates", uniqueConstraints = {
         @UniqueConstraint(
-                name = "uk_reservation_candidate_nickname",
-                columnNames = {"reservation_id", "candidateNickname"}
+                name = "uk_reservation_candidate_user_id",
+                columnNames = {"reservation_id", "candidateId"}
         )
 })
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

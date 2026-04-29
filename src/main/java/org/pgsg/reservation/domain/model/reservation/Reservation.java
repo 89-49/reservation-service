@@ -111,9 +111,10 @@ public class Reservation extends BaseEntity {
 
     // 다음 순번 구매자로 교체
     public void changeToNextBuyer(ReservationCandidate nextCandidate) {
-        // AVAILABLE 상태거나, 이전 구매자가 취소하여 기회가 생긴 경우에만 가능
+        // 현재 변경 가능한 상태인지 검증 (AVAILABLE 혹은 이전 구매자 취소 상태)
         validateStatus(ReservationStatus.AVAILABLE, ReservationStatus.CANCELLED_BY_BUYER);
 
+        // 인자 및 후보자 유효성 검증
         if (nextCandidate == null) {
             throw new IllegalArgumentException("nextBuyer must not be null");
         }
@@ -124,10 +125,12 @@ public class Reservation extends BaseEntity {
             throw new ReservationException(ReservationErrorCode.CANNOT_CHANGE_STATUS);
         }
 
-        nextCandidate.selected();
-        // 새 구매자 정보로 교체 후 다시 임시 예약(PENDING) 상태로 변경
-        this.buyerInfo = BuyerInfo.of(nextCandidate.getCandidateId(), nextCandidate.getCandidateNickname());
+        // 순서 변경: 먼저 예약 상태를 PENDING으로 전환하여 selected()의 검증을 통과시킴
         this.status = ReservationStatus.PENDING;
+        this.buyerInfo = BuyerInfo.of(nextCandidate.getCandidateId(), nextCandidate.getCandidateNickname());
+
+        // 후보자 상태를 SELECTED로 변경
+        nextCandidate.selected();
     }
 
     // 상태 검증: 여러 허용 상태 중 하나라도 만족하는지 확인
