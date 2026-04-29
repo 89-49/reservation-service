@@ -20,7 +20,8 @@ public enum ReservationErrorCode {
     RESERVATION_NOT_FOUND(404, "해당 예약을 찾을 수 없습니다."),
 
     // 409 Conflict (중복 등 비즈니스 규칙 위반)
-    DUPLICATE_RESERVATION(409, "이미 해당 상품에 대한 예약 진행 내역이 존재합니다.");
+    DUPLICATE_RESERVATION(409, "이미 해당 상품에 대한 예약 진행 내역이 존재합니다."),
+    ALREADY_APPLIED(409, "이미 해당 예약에 신청한 후보자입니다.");
 
     private final int status;
     private final String message;
