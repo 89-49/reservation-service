@@ -91,10 +91,15 @@ public class ReservationDomainService {
 
         // 후보자 생성 및 애그리거트에 추가
         ReservationCandidate candidate = ReservationCandidate.create(reservation, userId, nickname);
+        // 현재 후보자가 없을 경우 첫 번째 신청자로 생각
+        boolean isFirstCandidate = reservation.getCandidates().isEmpty();
+
         reservation.addCandidate(candidate);
 
         // 만약 첫 번째 후보자라면 바로 구매자로 선정하는 로직
-        reservation.changeToNextBuyer(candidate);
+        if (isFirstCandidate) {
+            reservation.changeToNextBuyer(candidate);
+        }
 
         return candidate;
     }
