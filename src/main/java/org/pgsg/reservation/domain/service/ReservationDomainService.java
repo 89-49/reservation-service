@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.UUID;
 
 
@@ -92,15 +93,16 @@ public class ReservationDomainService {
             throw new ReservationException(ReservationErrorCode.CANNOT_CHANGE_STATUS);
         }
 
+        // 현재 구매자가 없는 상태(reopen된 상태)라면 내가 바로 구매자가 변경
+        boolean shouldBeSelectedImmediately = (reservation.getBuyerInfo() == null);
+
         // 후보자 생성 및 애그리거트에 추가
         ReservationCandidate candidate = ReservationCandidate.create(reservation, userId, nickname);
-        // 현재 후보자가 없을 경우 첫 번째 신청자로 생각
-        boolean isFirstCandidate = reservation.getCandidates().isEmpty();
 
         reservation.addCandidate(candidate);
 
         // 만약 첫 번째 후보자라면 바로 구매자로 선정하는 로직
-        if (isFirstCandidate) {
+        if (shouldBeSelectedImmediately) {
             reservation.changeToNextBuyer(candidate);
         }
 
@@ -141,12 +143,20 @@ public class ReservationDomainService {
      * 다음 구매자 승계 내부 로직
      */
     private void handleNextBuyerSequence(Reservation reservation) {
-        // 기획서 규칙: WAITING 상태 중 생성일 오름차순 -> ID 오름차순
-        reservation.getCandidates().stream()
+        // WAITING 상태 중 생성일 오름차순 -> ID 오름차순
+        // 대기자 중 가장 우선 우선순위가 높은 사람을 찾음
+        Optional<ReservationCandidate> nextCandidate = reservation.getCandidates().stream()
                 .filter(c -> c.getStatus() == ReservationCandidateStatus.WAITING)
                 .min(Comparator.comparing(ReservationCandidate::getCreatedAt)
-                        .thenComparing(ReservationCandidate::getId))
-                .ifPresent(reservation::changeToNextBuyer);
+                        .thenComparing(ReservationCandidate::getId));
+
+        if (nextCandidate.isPresent()) {
+            // a. 대기자가 있으면 승계 처리
+            reservation.changeToNextBuyer(nextCandidate.get());
+        } else {
+            // b. 대기자가 없으면 다시 누구나 신청 가능한 상태로 복구
+            reservation.reopen();
+        }
     }
 
     private boolean isBuyer(Reservation reservation, UUID userId) {
