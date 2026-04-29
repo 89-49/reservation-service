@@ -92,7 +92,7 @@ public class ReservationController {
     public ResponseEntity<ReservationCandidateResponse> applyReservation(
             @PathVariable UUID reservationId,
             @RequestHeader("X-User-Id") UUID userId,
-            @RequestHeader("X-Nickname") String nickname
+            @RequestHeader("X-User-Nickname") String nickname
     ) {
         ReservationCandidateResponse response = reservationService.applyReservation(reservationId, userId, nickname);
 
