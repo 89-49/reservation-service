@@ -114,6 +114,11 @@ public class ReservationDomainService {
      * 해당 취소 사유자가 권한이 있는지 확인하기
      */
     public ReservationHistory cancel(Reservation reservation, UUID userId, String reason) {
+        // 취소 사유 검증
+        if (reason == null || reason.isBlank()) {
+            throw new ReservationException(ReservationErrorCode.INVALID_INPUT);
+        }
+
         // 검증 로직
         reservationValidator.validateCancel(reservation, userId);
 
