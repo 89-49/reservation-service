@@ -50,7 +50,7 @@ public class Reservation extends BaseEntity {
     }
 
     public void removeCandidate(ReservationCandidate candidate) {
-        validateStatus(ReservationStatus.AVAILABLE);
+        //validateStatus(ReservationStatus.AVAILABLE);
         this.candidates.remove(candidate);
     }
 

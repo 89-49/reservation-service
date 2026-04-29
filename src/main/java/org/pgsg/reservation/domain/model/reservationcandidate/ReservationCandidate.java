@@ -69,7 +69,14 @@ public class ReservationCandidate extends BaseEntity {
         if (this.status == ReservationCandidateStatus.CANCELLED) {
             throw new ReservationException(ReservationErrorCode.CANNOT_CHANGE_STATUS);
         }
+
+        // 상태 변경
         this.status = ReservationCandidateStatus.CANCELLED;
+
+        // 부모 예약 엔티티의 후보 리스트에서 제거
+        if (this.reservation != null) {
+            this.reservation.removeCandidate(this);
+        }
     }
 
     // Reservation에서 예약 상태(PENDING)이어야 후보자 선정 가능
