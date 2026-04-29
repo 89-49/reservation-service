@@ -14,6 +14,7 @@ import org.pgsg.reservation.domain.service.ReservationDomainService;
 import org.pgsg.reservation.domain.repository.ReservationRepository;
 import org.pgsg.reservation.presentation.dto.response.ReservationCandidateResponse;
 import org.pgsg.reservation.presentation.dto.response.ReservationDetailResponse;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -110,6 +111,8 @@ public class ReservationService {
     // 예약 신청
     @Transactional
     public ReservationCandidateResponse applyReservation(UUID reservationId, UUID userId, String nickname) {
+        Reservation savedReservation;
+
         // 예약 엔티티 조회
         Reservation reservation = reservationRepository.findById(reservationId)
                 .orElseThrow(() -> new ReservationException(ReservationErrorCode.RESERVATION_NOT_FOUND));
@@ -117,8 +120,12 @@ public class ReservationService {
         // 도메인 서비스를 통한 신청 로직 (후보자 생성 및 추가)
         ReservationCandidate candidate = reservationDomainService.addCandidate(reservation, userId, nickname);
 
-        // 변경사항 저장
-        Reservation savedReservation = reservationRepository.saveAndFlush(reservation);
+        // 변경사항 저장과 예외 감시
+        try {
+            savedReservation = reservationRepository.saveAndFlush(reservation);
+        } catch (DataIntegrityViolationException e) {
+            throw new ReservationException(ReservationErrorCode.ALREADY_APPLIED);
+        }
 
         // 방금 저장된 예약에서 추하한 후보자 찾기
         ReservationCandidate savedCandidate = savedReservation.getCandidates().stream()
