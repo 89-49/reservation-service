@@ -90,7 +90,7 @@ public class ReservationDomainService {
         }
 
         // 후보자 생성 및 애그리거트에 추가
-        ReservationCandidate candidate = ReservationCandidate.creat(reservation, userId, nickname);
+        ReservationCandidate candidate = ReservationCandidate.create(reservation, userId, nickname);
         reservation.addCandidate(candidate);
 
         // 만약 첫 번째 후보자라면 바로 구매자로 선정하는 로직

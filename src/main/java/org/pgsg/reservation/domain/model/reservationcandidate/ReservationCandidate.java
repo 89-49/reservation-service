@@ -37,7 +37,7 @@ public class ReservationCandidate extends BaseEntity {
     private ReservationCandidateStatus status = ReservationCandidateStatus.WAITING;
 
     // 예약 후보 생성
-    public static ReservationCandidate creat(Reservation reservation, UUID candidateId, String candidateNickname) {
+    public static ReservationCandidate create(Reservation reservation, UUID candidateId, String candidateNickname) {
         verify(reservation, candidateId, candidateNickname);
         ReservationCandidate candidate = new ReservationCandidate();
         candidate.reservation = reservation;
