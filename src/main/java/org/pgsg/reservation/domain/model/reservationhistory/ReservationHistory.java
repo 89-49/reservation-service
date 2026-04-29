@@ -39,6 +39,10 @@ public class ReservationHistory {
     // 상태 변경 이력을 생성
     public static ReservationHistory of(UUID reservationId, ReservationStatus previousStatus,
                                         ReservationStatus newStatus, String comment, UUID changedBy) {
+        if (comment == null || comment.isBlank()) {
+            throw new IllegalArgumentException("comment must not be blank");
+        }
         return new ReservationHistory(null, reservationId, previousStatus, newStatus, comment, changedBy);
+    }
     }
 }
