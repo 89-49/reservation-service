@@ -44,5 +44,4 @@ public class ReservationHistory {
         }
         return new ReservationHistory(null, reservationId, previousStatus, newStatus, comment, changedBy);
     }
-    }
 }
