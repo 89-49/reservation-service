@@ -1,4 +1,4 @@
-package org.pgsg.reservation.infrastructure.repository;
+package org.pgsg.reservation.infrastructure.repository.reservation;
 
 import org.pgsg.reservation.domain.model.reservation.Reservation;
 import org.springframework.data.jpa.repository.JpaRepository;

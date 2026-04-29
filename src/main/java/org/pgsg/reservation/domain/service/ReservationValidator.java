@@ -35,6 +35,23 @@ public class ReservationValidator {
         }
     }
 
+    // 취소 권한 및 상태 검증
+    public void validateCancel(Reservation reservation, UUID userId) {
+        // 권한 확인 (구매자 혹은 판매자인지)
+        boolean isBuyer = reservation.getBuyerInfo() != null &&
+                reservation.getBuyerInfo().getBuyerId().equals(userId);
+        boolean isSeller = reservation.getSellerInfo().getSellerId().equals(userId);
+
+        if (!isBuyer && !isSeller) {
+            throw new ReservationException(ReservationErrorCode.UNAUTHORIZED_ACCESS);
+        }
+
+        // 상태 확인 (취소 가능한 상태인지)
+        if (!reservation.getStatus().isMutable()) {
+            throw new ReservationException(ReservationErrorCode.CANNOT_CHANGE_STATUS);
+        }
+    }
+
     // 본인 상품 예약 금지 규칙
     private boolean isSamePerson(BuyerInfo buyer, SellerInfo seller) {
         return buyer.getBuyerId().equals(seller.getSellerId());

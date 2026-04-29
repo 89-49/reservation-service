@@ -2,10 +2,12 @@ package org.pgsg.reservation.presentation.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.pgsg.config.security.UserDetailsImpl;
 import org.pgsg.reservation.application.dto.command.ReservationCreateCommand;
 import org.pgsg.reservation.application.dto.query.ReservationSearchQuery;
 import org.pgsg.reservation.application.dto.result.ReservationCreateResult;
 import org.pgsg.reservation.application.service.ReservationService;
+import org.pgsg.reservation.presentation.dto.request.ReservationCancelRequest;
 import org.pgsg.reservation.presentation.dto.request.ReservationCreateRequest;
 import org.pgsg.reservation.presentation.dto.request.ReservationSearchRequest;
 import org.pgsg.reservation.presentation.dto.response.ReservationCandidateResponse;
@@ -16,6 +18,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -68,7 +71,7 @@ public class ReservationController {
         Page<ReservationResponse> responses = reservationService.getSearchReservations(userId, role, query, pageable)
                 .map(ReservationResponse::from);
 
-        // 3. 통일된 응답 규격으로 반환 (조회는 200 OK)
+        // 통일된 응답 규격으로 반환 (조회는 200 OK)
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(responses);
@@ -87,7 +90,7 @@ public class ReservationController {
         return ResponseEntity.ok(response);
     }
 
-    //예약 신청
+    // 예약 신청
     @PostMapping("/{reservationId}")
     public ResponseEntity<ReservationCandidateResponse> applyReservation(
             @PathVariable UUID reservationId,
@@ -97,5 +100,22 @@ public class ReservationController {
         ReservationCandidateResponse response = reservationService.applyReservation(reservationId, userId, nickname);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    // 예약 취소
+    @PatchMapping("/{reservationId}/cancel")
+    public ResponseEntity<Void> cancelReservation(
+            @PathVariable UUID reservationId,
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @Valid @RequestBody ReservationCancelRequest request
+    ) {
+
+        reservationService.cancelReservation(
+                reservationId,
+                userDetails.getUuid(), // 취소 수행자 ID
+                request.reason() // 취소 사유
+        );
+
+        return ResponseEntity.noContent().build(); // 204 No Content 응답
     }
 }

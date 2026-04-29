@@ -1,4 +1,4 @@
-package org.pgsg.reservation.infrastructure.repository;
+package org.pgsg.reservation.infrastructure.repository.reservation;
 
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.PathBuilder;

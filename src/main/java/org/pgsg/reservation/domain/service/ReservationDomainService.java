@@ -5,8 +5,11 @@ import org.pgsg.reservation.domain.exception.ReservationErrorCode;
 import org.pgsg.reservation.domain.exception.ReservationException;
 import org.pgsg.reservation.domain.model.reservation.*;
 import org.pgsg.reservation.domain.model.reservationcandidate.ReservationCandidate;
+import org.pgsg.reservation.domain.model.reservationcandidate.ReservationCandidateStatus;
+import org.pgsg.reservation.domain.model.reservationhistory.ReservationHistory;
 import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
 import java.util.Locale;
 import java.util.UUID;
 
@@ -102,5 +105,52 @@ public class ReservationDomainService {
         }
 
         return candidate;
+    }
+
+    /**
+     * 판매자,구매자 예약 취소
+     * 해당 취소 사유자가 권한이 있는지 확인하기
+     */
+    public ReservationHistory cancel(Reservation reservation, UUID userId, String reason) {
+        // 검증 로직
+        reservationValidator.validateCancel(reservation, userId);
+
+        ReservationStatus previousStatus = reservation.getStatus();
+
+        // 취소 주체 판별 및 상태 변경
+        if (isBuyer(reservation, userId)) {
+            reservation.cancelByBuyer();
+            // 구매자 취소 시 다음 순번 승계 시도
+            handleNextBuyerSequence(reservation);
+        } else {
+            // 판매자 취소
+            reservation.cancelBySeller();
+        }
+
+        // 이력 객체 생성 및 반환
+        return ReservationHistory.of(
+                reservation.getId(),
+                previousStatus,
+                reservation.getStatus(),
+                reason,
+                userId
+        );
+    }
+
+    /**
+     * 다음 구매자 승계 내부 로직
+     */
+    private void handleNextBuyerSequence(Reservation reservation) {
+        // 기획서 규칙: WAITING 상태 중 생성일 오름차순 -> ID 오름차순
+        reservation.getCandidates().stream()
+                .filter(c -> c.getStatus() == ReservationCandidateStatus.WAITING)
+                .min(Comparator.comparing(ReservationCandidate::getCreatedAt)
+                        .thenComparing(ReservationCandidate::getId))
+                .ifPresent(reservation::changeToNextBuyer);
+    }
+
+    private boolean isBuyer(Reservation reservation, UUID userId) {
+        return reservation.getBuyerInfo() != null &&
+                reservation.getBuyerInfo().getBuyerId().equals(userId);
     }
 }

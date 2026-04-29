@@ -16,7 +16,7 @@ import java.util.UUID;
 @Table(name = "p_reservation_candidates", uniqueConstraints = {
         @UniqueConstraint(
                 name = "uk_reservation_candidate_user_id",
-                columnNames = {"reservation_id", "candidateId"}
+                columnNames = {"reservation_id", "candidate_id"}
         )
 })
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -30,10 +30,14 @@ public class ReservationCandidate extends BaseEntity {
     @JoinColumn(name = "reservation_id")
     private Reservation reservation;
 
+    @Column(name = "candidate_id", nullable = false)
     private UUID candidateId;      // 후보자 식별자
+
+    @Column(nullable = false)
     private String candidateNickname; // 후보자 닉네임
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private ReservationCandidateStatus status = ReservationCandidateStatus.WAITING;
 
     // 예약 후보 생성

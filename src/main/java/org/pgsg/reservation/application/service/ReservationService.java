@@ -10,6 +10,8 @@ import org.pgsg.reservation.domain.exception.ReservationErrorCode;
 import org.pgsg.reservation.domain.exception.ReservationException;
 import org.pgsg.reservation.domain.model.reservation.*;
 import org.pgsg.reservation.domain.model.reservationcandidate.ReservationCandidate;
+import org.pgsg.reservation.domain.model.reservationhistory.ReservationHistory;
+import org.pgsg.reservation.domain.repository.ReservationHistoryRepository;
 import org.pgsg.reservation.domain.service.ReservationDomainService;
 import org.pgsg.reservation.domain.repository.ReservationRepository;
 import org.pgsg.reservation.presentation.dto.response.ReservationCandidateResponse;
@@ -28,6 +30,7 @@ public class ReservationService {
 
     private final ReservationRepository reservationRepository;
     private final ReservationDomainService reservationDomainService;
+    private final ReservationHistoryRepository reservationHistoryRepository;
     // private final ProductClient productClient; // 추후 구현 예정
 
     // 도메인 서비스 호출 전까지의 작업은 트랜잭션 밖으로 분리(추후 고도화 작업시)
@@ -139,8 +142,24 @@ public class ReservationService {
         return ReservationCandidateResponse.from(savedCandidate);
     }
 
+    // 예약 취소
+    @Transactional
+    public void cancelReservation(UUID reservationId, UUID userId, String reason) {
+        // DB에서 예약 애그리거트 조회
+        Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new ReservationException(ReservationErrorCode.RESERVATION_NOT_FOUND));
+
+        // 도메인 서비스에 취소 로직 위임
+        ReservationHistory history = reservationDomainService.cancel(reservation, userId, reason);
+
+        // 변경 사항 저장 (Persistence)
+        // 새로 생성된 이력(History)은 명시적으로 저장
+        reservationHistoryRepository.save(history);
+    }
+
     private boolean isDuplicateApplyViolation(DataIntegrityViolationException e) {
         String message = e.getMostSpecificCause().getMessage();
         return message != null && message.contains("uk_reservation_candidate_user_id");
     }
+
 }
