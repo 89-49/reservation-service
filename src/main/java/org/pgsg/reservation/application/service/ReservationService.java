@@ -6,10 +6,15 @@ import org.pgsg.reservation.application.dto.query.ReservationSearchQuery;
 import org.pgsg.reservation.application.dto.result.ReservationCreateResult;
 import org.pgsg.reservation.application.dto.result.ReservationSearchResult;
 import org.pgsg.reservation.domain.dto.ReservationSearchCriteria;
+import org.pgsg.reservation.domain.exception.ReservationErrorCode;
+import org.pgsg.reservation.domain.exception.ReservationException;
 import org.pgsg.reservation.domain.model.reservation.*;
+import org.pgsg.reservation.domain.model.reservationcandidate.ReservationCandidate;
 import org.pgsg.reservation.domain.service.ReservationDomainService;
 import org.pgsg.reservation.domain.repository.ReservationRepository;
+import org.pgsg.reservation.presentation.dto.response.ReservationCandidateResponse;
 import org.pgsg.reservation.presentation.dto.response.ReservationDetailResponse;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -54,7 +59,7 @@ public class ReservationService {
         // DB 저장
         Reservation savedReservation = reservationRepository.save(reservation);
 
-        // Result DTO로 변환하여 Controller로 전달
+        // 5. [결과 반환] Result DTO로 변환하여 Controller로 전달
         return ReservationCreateResult.builder()
                 .reservationId(savedReservation.getId())
                 .status(savedReservation.getStatus().name())
@@ -88,8 +93,8 @@ public class ReservationService {
         // Repository(QueryDSL)에 정책과 검색 조건을 함께 전달
         return reservations.map(ReservationSearchResult::from);
     }
-    
-    
+
+
     // 예약 상세 조회
     @Transactional(readOnly = true)
     public ReservationDetailResponse getReservationDetail(UUID reservationId, UUID userId, String role) {
@@ -101,5 +106,41 @@ public class ReservationService {
         reservationDomainService.validateDetailAccess(reservation, userId, role);
 
         return ReservationDetailResponse.from(reservation);
+    }
+
+    // 예약 신청
+    @Transactional
+    public ReservationCandidateResponse applyReservation(UUID reservationId, UUID userId, String nickname) {
+        Reservation savedReservation;
+
+        // 예약 엔티티 조회
+        Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new ReservationException(ReservationErrorCode.RESERVATION_NOT_FOUND));
+
+        // 도메인 서비스를 통한 신청 로직 (후보자 생성 및 추가)
+        ReservationCandidate candidate = reservationDomainService.addCandidate(reservation, userId, nickname);
+
+        // 변경사항 저장과 예외 감시
+        try {
+            savedReservation = reservationRepository.saveAndFlush(reservation);
+        } catch (DataIntegrityViolationException e) {
+            if (isDuplicateApplyViolation(e)) {
+                throw new ReservationException(ReservationErrorCode.ALREADY_APPLIED);
+            }
+            throw e;
+        }
+
+        // 방금 저장된 예약에서 추하한 후보자 찾기
+        ReservationCandidate savedCandidate = savedReservation.getCandidates().stream()
+                .filter(c -> c.getCandidateId().equals(userId))
+                .findFirst()
+                .orElse(candidate);
+
+        return ReservationCandidateResponse.from(savedCandidate);
+    }
+
+    private boolean isDuplicateApplyViolation(DataIntegrityViolationException e) {
+        String message = e.getMostSpecificCause().getMessage();
+        return message != null && message.contains("uk_reservation_candidate_user_id");
     }
 }

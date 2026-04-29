@@ -11,6 +11,9 @@ import java.util.UUID;
 public interface ReservationRepository {
     Reservation save(Reservation reservation);
 
+    // 즉시 DB에 반영하고 ID를 확보하기 위한 메서드
+    Reservation saveAndFlush(Reservation reservation);
+
     // QueryDSL을 활용한 동적 검색 구현
     Page<Reservation> findByCriteria(ReservationSearchCriteria criteria, Pageable pageable);
 

@@ -34,6 +34,11 @@ public class ReservationRepositoryImpl implements ReservationRepository {
     }
 
     @Override
+    public Reservation saveAndFlush(Reservation reservationEntity) {
+        return reservationJpaRepository.saveAndFlush(reservationEntity);
+    }
+
+    @Override
     public Optional<Reservation> findById(UUID id) {
         return reservationJpaRepository.findById(id);
     }

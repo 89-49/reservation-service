@@ -15,8 +15,8 @@ import java.util.UUID;
 @Getter
 @Table(name = "p_reservation_candidates", uniqueConstraints = {
         @UniqueConstraint(
-                name = "uk_reservation_candidate_nickname",
-                columnNames = {"reservation_id", "candidateNickname"}
+                name = "uk_reservation_candidate_user_id",
+                columnNames = {"reservation_id", "candidateId"}
         )
 })
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -37,7 +37,7 @@ public class ReservationCandidate extends BaseEntity {
     private ReservationCandidateStatus status = ReservationCandidateStatus.WAITING;
 
     // 예약 후보 생성
-    public static ReservationCandidate of(Reservation reservation, UUID candidateId, String candidateNickname) {
+    public static ReservationCandidate create(Reservation reservation, UUID candidateId, String candidateNickname) {
         verify(reservation, candidateId, candidateNickname);
         ReservationCandidate candidate = new ReservationCandidate();
         candidate.reservation = reservation;
@@ -69,7 +69,14 @@ public class ReservationCandidate extends BaseEntity {
         if (this.status == ReservationCandidateStatus.CANCELLED) {
             throw new ReservationException(ReservationErrorCode.CANNOT_CHANGE_STATUS);
         }
+
+        // 상태 변경
         this.status = ReservationCandidateStatus.CANCELLED;
+
+        // 부모 예약 엔티티의 후보 리스트에서 제거
+        if (this.reservation != null) {
+            this.reservation.removeCandidate(this);
+        }
     }
 
     // Reservation에서 예약 상태(PENDING)이어야 후보자 선정 가능

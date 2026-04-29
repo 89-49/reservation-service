@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.pgsg.reservation.domain.exception.ReservationErrorCode;
 import org.pgsg.reservation.domain.exception.ReservationException;
 import org.pgsg.reservation.domain.model.reservation.*;
+import org.pgsg.reservation.domain.model.reservationcandidate.ReservationCandidate;
 import org.springframework.stereotype.Service;
 
 import java.util.Locale;
@@ -69,5 +70,37 @@ public class ReservationDomainService {
                 throw new RuntimeException("해당 예약을 조회할 권한이 없습니다.");
             }
         }
+    }
+
+    /**
+     * 구매자 예약 신청
+     * 특정 사용자가 해당 예약에 접근할 수 있는지 비즈니스 규칙 검사
+     */
+    public ReservationCandidate addCandidate(Reservation reservation, UUID userId, String nickname) {
+        // 이미 후보자로 등록되어 있는지 확인
+        boolean isAlreadyApplied = reservation.getCandidates().stream()
+                .anyMatch(c -> c.getCandidateId().equals(userId));
+        if (isAlreadyApplied) {
+            throw new ReservationException(ReservationErrorCode.ALREADY_APPLIED);
+        }
+
+        // 예약이 활성 상태(AVAILABLE)인지 확인
+        if (reservation.getStatus() != ReservationStatus.AVAILABLE) {
+            throw new ReservationException(ReservationErrorCode.CANNOT_CHANGE_STATUS);
+        }
+
+        // 후보자 생성 및 애그리거트에 추가
+        ReservationCandidate candidate = ReservationCandidate.create(reservation, userId, nickname);
+        // 현재 후보자가 없을 경우 첫 번째 신청자로 생각
+        boolean isFirstCandidate = reservation.getCandidates().isEmpty();
+
+        reservation.addCandidate(candidate);
+
+        // 만약 첫 번째 후보자라면 바로 구매자로 선정하는 로직
+        if (isFirstCandidate) {
+            reservation.changeToNextBuyer(candidate);
+        }
+
+        return candidate;
     }
 }
