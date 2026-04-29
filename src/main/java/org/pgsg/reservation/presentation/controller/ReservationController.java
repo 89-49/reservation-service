@@ -6,9 +6,9 @@ import org.pgsg.reservation.application.dto.command.ReservationCreateCommand;
 import org.pgsg.reservation.application.dto.query.ReservationSearchQuery;
 import org.pgsg.reservation.application.dto.result.ReservationCreateResult;
 import org.pgsg.reservation.application.service.ReservationService;
-import org.pgsg.reservation.domain.model.reservation.SearchPolicy;
 import org.pgsg.reservation.presentation.dto.request.ReservationCreateRequest;
 import org.pgsg.reservation.presentation.dto.request.ReservationSearchRequest;
+import org.pgsg.reservation.presentation.dto.response.ReservationCandidateResponse;
 import org.pgsg.reservation.presentation.dto.response.ReservationDetailResponse;
 import org.pgsg.reservation.presentation.dto.response.ReservationResponse;
 import org.springframework.data.domain.Page;
@@ -16,10 +16,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.nio.file.attribute.UserPrincipal;
 import java.util.UUID;
 
 @RestController
@@ -87,5 +85,17 @@ public class ReservationController {
         ReservationDetailResponse response = reservationService.getReservationDetail(reservationId, userId, role);
 
         return ResponseEntity.ok(response);
+    }
+
+    //예약 신청
+    @PostMapping("/{reservationId}")
+    public ResponseEntity<ReservationCandidateResponse> applyReservation(
+            @PathVariable UUID reservationId,
+            @RequestHeader("X-User-Id") UUID userId,
+            @RequestHeader("X-Nickname") String nickname
+    ) {
+        ReservationCandidateResponse response = reservationService.applyReservation(reservationId, userId, nickname);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 }
