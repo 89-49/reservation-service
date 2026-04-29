@@ -66,7 +66,7 @@ public class ReservationController {
         Page<ReservationResponse> responses = reservationService.getSearchReservations(userId, role, query, pageable)
                 .map(ReservationResponse::from);
 
-        // 3. 통일된 응답 규격으로 반환 (조회는 200 OK)
+        // 통일된 응답 규격으로 반환 (조회는 200 OK)
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(responses);
