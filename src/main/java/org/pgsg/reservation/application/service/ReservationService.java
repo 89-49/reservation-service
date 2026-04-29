@@ -124,7 +124,10 @@ public class ReservationService {
         try {
             savedReservation = reservationRepository.saveAndFlush(reservation);
         } catch (DataIntegrityViolationException e) {
-            throw new ReservationException(ReservationErrorCode.ALREADY_APPLIED);
+            if (isDuplicateApplyViolation(e)) {
+                throw new ReservationException(ReservationErrorCode.ALREADY_APPLIED);
+            }
+            throw e;
         }
 
         // 방금 저장된 예약에서 추하한 후보자 찾기
@@ -134,5 +137,10 @@ public class ReservationService {
                 .orElse(candidate);
 
         return ReservationCandidateResponse.from(savedCandidate);
+    }
+
+    private boolean isDuplicateApplyViolation(DataIntegrityViolationException e) {
+        String message = e.getMostSpecificCause().getMessage();
+        return message != null && message.contains("uk_reservation_candidate_user_id");
     }
 }
