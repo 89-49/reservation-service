@@ -65,7 +65,7 @@ public class ReservationService {
         // DB 저장
         Reservation savedReservation = reservationRepository.save(reservation);
 
-        // 5. [결과 반환] Result DTO로 변환하여 Controller로 전달
+        // [결과 반환] Result DTO로 변환하여 Controller로 전달
         return ReservationCreateResult.builder()
                 .reservationId(savedReservation.getId())
                 .status(savedReservation.getStatus().name())
@@ -196,6 +196,19 @@ public class ReservationService {
                 request.targetStatus(),
                 request.reason()
         );
+
+        reservationHistoryRepository.save(history);
+
+        return ReservationCancelInfo.from(reservation);
+    }
+
+    // 예약 완료
+    @Transactional
+    public ReservationCancelInfo completeReservation(UUID reservationId, UUID userId, String role) {
+        // 예약 엔티티 조회
+        Reservation reservation = findById(reservationId);
+
+        ReservationHistory history = reservationDomainService.completeReservation(reservation,userId,role);
 
         reservationHistoryRepository.save(history);
 
