@@ -148,7 +148,7 @@ public class ReservationController {
     }
 
     // 예약 만료(관리자만 조정 가능)
-    @PatchMapping("/{reservationId}/admin-force")
+    @PatchMapping("/{reservationId}/expire")
     public ResponseEntity<ReservationCancelResponse> expireByAdmin(
             @PathVariable UUID reservationId,
             @RequestBody ReservationAdminCancelRequest request,
@@ -161,10 +161,26 @@ public class ReservationController {
                 userDetails.getUserRole()
         );
 
-        // targetStatus에 따른 맞춤형 메시지 생성
         String message = (request.targetStatus() == ReservationStatus.CANCELLED_BY_BUYER)
                 ? "관리자 권한으로 구매자 사유 취소(승계) 처리가 완료되었습니다."
                 : "관리자 권한으로 판매자 사유 취소(종료) 처리가 완료되었습니다.";
+
+        return ResponseEntity.ok(ReservationCancelResponse.of(info, message));
+    }
+
+    // 예약 완료
+    @PatchMapping("/{reservationId}/complete")
+    public ResponseEntity<ReservationCancelResponse> completeReservation(
+            @PathVariable UUID reservationId,
+            @AuthenticationPrincipal UserDetailsImpl userDetails
+    ) {
+        ReservationCancelInfo info = reservationService.completeReservation(
+                reservationId,
+                userDetails.getUuid(),
+                userDetails.getUserRole()
+        );
+
+        String message = "판매자 채팅 수락에 따라 예약 완료 처리가 완료되었습니다.";
 
         return ResponseEntity.ok(ReservationCancelResponse.of(info, message));
     }

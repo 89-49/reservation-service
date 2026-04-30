@@ -9,10 +9,7 @@ import org.pgsg.reservation.domain.model.reservationcandidate.ReservationCandida
 import org.pgsg.reservation.domain.model.reservationhistory.ReservationHistory;
 import org.springframework.stereotype.Service;
 
-import java.util.Comparator;
-import java.util.Locale;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 
 @Service
@@ -212,6 +209,34 @@ public class ReservationDomainService {
     }
 
     /**
+     * 예약 완료
+     * 예약 완료 도메인 로직 및 이력 객체 생성
+     */
+    public ReservationHistory completeReservation(Reservation reservation, UUID userId ,String role) {
+        // 권한 검증 로직
+        boolean isSeller = reservation.getSellerInfo() != null && Objects.equals(reservation.getSellerInfo().getSellerId(), userId);
+        boolean isAdmin = "ADMIN".equalsIgnoreCase(role);
+        if (!isAdmin && !isSeller) {
+            throw new ReservationException(ReservationErrorCode.UNAUTHORIZED_ACCESS);
+        }
+
+        ReservationStatus previousStatus = reservation.getStatus();
+
+        // 엔티티 비즈니스 로직 실행 (PAID -> COMPLETED)
+        // 규칙: 예약 대기 상태일 때만 완료 가능
+        reservation.complete();
+
+        // 저장할 이력 객체 생성 및 반환
+        return ReservationHistory.of(
+                reservation.getId(),
+                previousStatus,
+                ReservationStatus.COMPLETED,
+                "판매자 채팅 수락으로 인한 예약 완료",
+                userId
+        );
+    }
+
+    /**
      * 다음 구매자 승계 내부 로직
      */
     private void handleNextBuyerSequence(Reservation reservation) {
@@ -236,4 +261,5 @@ public class ReservationDomainService {
             throw new ReservationException(ReservationErrorCode.INVALID_INPUT);
         }
     }
+
 }
