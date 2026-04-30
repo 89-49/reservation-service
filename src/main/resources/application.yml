@@ -36,7 +36,7 @@ spring:
     password: ${DB_PASSWORD}
     url: ${DB_URL}
 
-  # [필수 4] Kafka 설정 (주신 group-id 반영)
+  # [필수 4] Kafka 설정
   kafka:
     bootstrap-servers: ${KAFKA_HOST:localhost}:${KAFKA_PORT:9092}
     consumer:
@@ -54,6 +54,12 @@ spring:
     show-sql: ${SPRING_JPA_SHOW_SQL:false}
     defer-datasource-initialization: true
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, refresh
+
 # [필수 5] 보안 및 유레카 설정
 jwt:
   secret: ${JWT_SECRET}
@@ -63,5 +69,7 @@ eureka:
     instance-id: ${spring.application.name}:${random.value}
     prefer-ip-address: true
   client:
+    register-with-eureka: true
+    fetch-registry: true
     service-url:
-      default_zone: ${EUREKA_SERVER:http://localhost:8761/eureka/}
+      defaultZone: ${EUREKA_SERVER:http://localhost:8761/eureka/}
