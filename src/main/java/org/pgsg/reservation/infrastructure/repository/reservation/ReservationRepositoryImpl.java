@@ -14,6 +14,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -22,7 +23,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class ReservationRepositoryImpl implements ReservationRepository {
 
-    private final ReservationJpaRepository reservationJpaRepository;
+    private final JpaReservationRepository reservationJpaRepository;
     private final JPAQueryFactory queryFactory;
 
     private final PathBuilder<Reservation> reservation =
@@ -36,6 +37,20 @@ public class ReservationRepositoryImpl implements ReservationRepository {
     @Override
     public Reservation saveAndFlush(Reservation reservationEntity) {
         return reservationJpaRepository.saveAndFlush(reservationEntity);
+    }
+
+    @Override
+    public List<Reservation> findAllByStatusInAndModifiedAtBefore(
+            List<ReservationStatus> statuses,
+            LocalDateTime threshold
+    ){
+        return queryFactory
+                .selectFrom(reservation)
+                .where(
+                        statusIn(statuses),
+                        modifiedAtBefore(threshold)
+                )
+                .fetch();
     }
 
     @Override
@@ -114,6 +129,18 @@ public class ReservationRepositoryImpl implements ReservationRepository {
         String normalized = buyerName == null ? null : buyerName.trim();
         return (normalized != null && !normalized.isBlank())
                 ? reservation.get("buyerInfo").getString("buyerName").containsIgnoreCase(normalized)
+                : null;
+    }
+
+    private BooleanExpression statusIn(List<ReservationStatus> statuses) {
+        return statuses != null && !statuses.isEmpty()
+                ? reservation.get("status", ReservationStatus.class).in(statuses)
+                : null;
+    }
+
+    private BooleanExpression modifiedAtBefore(LocalDateTime threshold) {
+        return threshold != null
+                ? reservation.getDateTime("modifiedAt", LocalDateTime.class).before(threshold)
                 : null;
     }
 }
