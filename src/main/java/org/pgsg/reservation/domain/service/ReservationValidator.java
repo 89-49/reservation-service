@@ -65,7 +65,7 @@ public class ReservationValidator {
     }
 
     // 공통 취소 가능 상태 검증
-    private void validateCommonCancel(Reservation reservation, UUID userId) {
+    public void validateCommonCancel(Reservation reservation, UUID userId) {
         if (reservation == null || userId == null) {
             throw new ReservationException(ReservationErrorCode.INVALID_INPUT);
         }

@@ -16,6 +16,7 @@ import org.pgsg.reservation.domain.model.reservationhistory.ReservationHistory;
 import org.pgsg.reservation.domain.repository.ReservationHistoryRepository;
 import org.pgsg.reservation.domain.service.ReservationDomainService;
 import org.pgsg.reservation.domain.repository.ReservationRepository;
+import org.pgsg.reservation.presentation.dto.request.ReservationAdminCancelRequest;
 import org.pgsg.reservation.presentation.dto.response.ReservationCandidateResponse;
 import org.pgsg.reservation.presentation.dto.response.ReservationDetailResponse;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -178,6 +179,29 @@ public class ReservationService {
         return ReservationCancelInfo.from(reservation);
     }
 
+    // 예약 만료
+    @Transactional
+    public ReservationCancelInfo expireByAdmin(
+            UUID reservationId,
+            ReservationAdminCancelRequest request,
+            UUID adminId,
+            String role
+    ) {
+        Reservation reservation = findById(reservationId);
+
+        ReservationHistory history = reservationDomainService.expireByAdmin(
+                reservation,
+                adminId,
+                role,
+                request.targetStatus(),
+                request.reason()
+        );
+
+        reservationHistoryRepository.save(history);
+
+        return ReservationCancelInfo.from(reservation);
+    }
+
     /**
      * 공통 ID 조회 메서드
      */
@@ -190,4 +214,5 @@ public class ReservationService {
         String message = e.getMostSpecificCause().getMessage();
         return message != null && message.contains("uk_reservation_candidate_user_id");
     }
+
 }

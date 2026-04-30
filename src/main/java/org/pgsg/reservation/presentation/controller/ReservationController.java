@@ -9,6 +9,8 @@ import org.pgsg.reservation.application.dto.info.ReservationCancelInfo;
 import org.pgsg.reservation.application.dto.query.ReservationSearchQuery;
 import org.pgsg.reservation.application.dto.result.ReservationCreateResult;
 import org.pgsg.reservation.application.service.ReservationService;
+import org.pgsg.reservation.domain.model.reservation.ReservationStatus;
+import org.pgsg.reservation.presentation.dto.request.ReservationAdminCancelRequest;
 import org.pgsg.reservation.presentation.dto.request.ReservationCancelRequest;
 import org.pgsg.reservation.presentation.dto.request.ReservationCreateRequest;
 import org.pgsg.reservation.presentation.dto.request.ReservationSearchRequest;
@@ -143,5 +145,27 @@ public class ReservationController {
         ReservationCancelResponse response = ReservationCancelResponse.of(info, "판매자 사유 취소가 완료되었습니다.");
 
         return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    // 예약 만료(관리자만 조정 가능)
+    @PatchMapping("/{reservationId}/admin-force")
+    public ResponseEntity<ReservationCancelResponse> expireByAdmin(
+            @PathVariable UUID reservationId,
+            @RequestBody ReservationAdminCancelRequest request,
+            @AuthenticationPrincipal UserDetailsImpl userDetails
+    ) {
+        ReservationCancelInfo info = reservationService.expireByAdmin(
+                reservationId,
+                request,
+                userDetails.getUuid(),
+                userDetails.getUserRole()
+        );
+
+        // targetStatus에 따른 맞춤형 메시지 생성
+        String message = (request.targetStatus() == ReservationStatus.CANCELLED_BY_BUYER)
+                ? "관리자 권한으로 구매자 사유 취소(승계) 처리가 완료되었습니다."
+                : "관리자 권한으로 판매자 사유 취소(종료) 처리가 완료되었습니다.";
+
+        return ResponseEntity.ok(ReservationCancelResponse.of(info, message));
     }
 }
