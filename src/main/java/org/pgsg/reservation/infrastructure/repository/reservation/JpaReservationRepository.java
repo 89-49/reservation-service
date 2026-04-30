@@ -9,5 +9,4 @@ import java.util.List;
 import java.util.UUID;
 
 public interface JpaReservationRepository extends JpaRepository<Reservation, UUID> {
-    List<Reservation> findAllByStatusAndExpirationTimeBefore(ReservationStatus status, LocalDateTime now);
 }
