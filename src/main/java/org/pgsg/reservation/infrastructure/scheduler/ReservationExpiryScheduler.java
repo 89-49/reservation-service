@@ -74,9 +74,12 @@ public class ReservationExpiryScheduler {
         }
 
         // PAID 상태일 때
-        return new ReservationAdminCancelRequest(
-                ReservationStatus.CANCELLED_BY_SELLER,
-                "채팅 수락 제한 시간(1시간) 초과로 인한 자동 취소"
-        );
+        if (reservation.getStatus() == ReservationStatus.PAID) {
+            return new ReservationAdminCancelRequest(
+                    ReservationStatus.CANCELLED_BY_SELLER,
+                    "채팅 수락 제한 시간(1시간) 초과로 인한 자동 취소"
+            );
+        }
+        throw new IllegalStateException("자동 만료 대상이 아닌 상태입니다: " + reservation.getStatus());
     }
 }

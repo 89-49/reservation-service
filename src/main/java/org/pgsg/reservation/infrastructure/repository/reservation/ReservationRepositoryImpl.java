@@ -46,6 +46,9 @@ public class ReservationRepositoryImpl implements ReservationRepository {
             List<ReservationStatus> statuses,
             LocalDateTime threshold
     ){
+        if (statuses == null || statuses.isEmpty() || threshold == null) {
+            return List.of();
+        }
         return queryFactory
                 .selectFrom(reservation)
                 .where(
