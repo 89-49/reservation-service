@@ -1,9 +1,8 @@
-package org.pgsg.reservation.infrastructure.repository;
+package org.pgsg.reservation.infrastructure.repository.reservationhistory;
 
 import lombok.RequiredArgsConstructor;
 import org.pgsg.reservation.domain.model.reservationhistory.ReservationHistory;
 import org.pgsg.reservation.domain.repository.ReservationHistoryRepository;
-import org.pgsg.reservation.infrastructure.repository.reservationhistory.JpaReservationHistoryRepository;
 import org.springframework.stereotype.Repository;
 
 @Repository

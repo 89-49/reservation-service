@@ -163,6 +163,55 @@ public class ReservationDomainService {
     }
 
     /**
+     * 예약 만료 로직
+     * 예약이 만료 될 시 작동 혹은 시스템 문제로 관리자 임의 실행
+     */
+    public ReservationHistory expireByAdmin(
+            Reservation reservation,
+            UUID adminId,
+            String role,
+            ReservationStatus targetStatus,
+            String reason
+    ) {
+        validateReason(reason);
+
+        // 관리자 권한 및 취소 가능 상태인지 확인
+        reservationValidator.validateSearchRequest(adminId, role);
+        if (!"ADMIN".equalsIgnoreCase(role == null ? null : role.trim())) {
+            throw new ReservationException(ReservationErrorCode.UNAUTHORIZED_ACCESS);
+        }
+        reservationValidator.validateCommonCancel(reservation, adminId);
+
+        // 이력 기록을 위해 변경 전 상태 보관
+        ReservationStatus previousStatus = reservation.getStatus();
+
+        // 상태 변경
+        if (targetStatus == ReservationStatus.CANCELLED_BY_BUYER) {
+            // 구매자 사유 취소로 취급 -> 차순위 승계(handleNextBuyer) 로직 작동
+            reservation.cancelByBuyer();
+
+            // 여기서 직접 차순위 로직을 호출하거나, 이벤트를 발행
+            handleNextBuyerSequence(reservation);
+
+        } else if (targetStatus == ReservationStatus.CANCELLED_BY_SELLER) {
+            // 판매자 사유 취소로 취급 -> 승계 없이 최종 종료
+            reservation.cancelBySeller();
+        } else {
+            // 그 외 정의되지 않은 상태 변경 시도 시 예외
+            throw new ReservationException(ReservationErrorCode.INVALID_INPUT);
+        }
+
+        // 3. 결과물(History) 생성 및 반환
+        return ReservationHistory.of(
+                reservation.getId(),
+                previousStatus,
+                reservation.getStatus(),
+                reason,
+                adminId
+        );
+    }
+
+    /**
      * 다음 구매자 승계 내부 로직
      */
     private void handleNextBuyerSequence(Reservation reservation) {
