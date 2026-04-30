@@ -2,12 +2,17 @@ package org.pgsg.reservation.presentation.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.pgsg.config.security.UserDetailsImpl;
+import org.pgsg.reservation.application.dto.command.ReservationCancelCommand;
 import org.pgsg.reservation.application.dto.command.ReservationCreateCommand;
+import org.pgsg.reservation.application.dto.info.ReservationCancelInfo;
 import org.pgsg.reservation.application.dto.query.ReservationSearchQuery;
 import org.pgsg.reservation.application.dto.result.ReservationCreateResult;
 import org.pgsg.reservation.application.service.ReservationService;
+import org.pgsg.reservation.presentation.dto.request.ReservationCancelRequest;
 import org.pgsg.reservation.presentation.dto.request.ReservationCreateRequest;
 import org.pgsg.reservation.presentation.dto.request.ReservationSearchRequest;
+import org.pgsg.reservation.presentation.dto.response.ReservationCancelResponse;
 import org.pgsg.reservation.presentation.dto.response.ReservationCandidateResponse;
 import org.pgsg.reservation.presentation.dto.response.ReservationDetailResponse;
 import org.pgsg.reservation.presentation.dto.response.ReservationResponse;
@@ -16,6 +21,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -68,7 +74,7 @@ public class ReservationController {
         Page<ReservationResponse> responses = reservationService.getSearchReservations(userId, role, query, pageable)
                 .map(ReservationResponse::from);
 
-        // 3. 통일된 응답 규격으로 반환 (조회는 200 OK)
+        // 통일된 응답 규격으로 반환 (조회는 200 OK)
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(responses);
@@ -87,7 +93,7 @@ public class ReservationController {
         return ResponseEntity.ok(response);
     }
 
-    //예약 신청
+    // 예약 신청
     @PostMapping("/{reservationId}")
     public ResponseEntity<ReservationCandidateResponse> applyReservation(
             @PathVariable UUID reservationId,
@@ -97,5 +103,45 @@ public class ReservationController {
         ReservationCandidateResponse response = reservationService.applyReservation(reservationId, userId, nickname);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    // 구매자 사유 취소 (구매자/관리자)
+    @PatchMapping("/{reservationId}/cancel/buyer")
+    public ResponseEntity<ReservationCancelResponse> cancelByBuyer(
+            @PathVariable UUID reservationId,
+            @RequestBody ReservationCancelRequest request,
+            @AuthenticationPrincipal UserDetailsImpl userDetails // AuthUser를 UserDetailsImpl로 통일
+    ) {
+        ReservationCancelCommand command = ReservationCancelCommand.of(
+                reservationId,
+                userDetails.getUuid(),
+                userDetails.getUserRole(),
+                request.reason()
+        );
+
+        ReservationCancelInfo info = reservationService.cancelByBuyer(command);
+        ReservationCancelResponse response = ReservationCancelResponse.of(info, "구매자 사유 취소가 완료되었습니다.");
+
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    // 판매자 사유로 인한 취소(판매자,관리자)
+    @PatchMapping("/{reservationId}/cancel/seller")
+    public ResponseEntity<ReservationCancelResponse> cancelBySeller(
+            @PathVariable UUID reservationId,
+            @RequestBody ReservationCancelRequest request,
+            @AuthenticationPrincipal UserDetailsImpl userDetails
+    ) {
+        ReservationCancelCommand command = ReservationCancelCommand.of(
+                reservationId,
+                userDetails.getUuid(),
+                userDetails.getUserRole(),
+                request.reason()
+        );
+
+        ReservationCancelInfo info = reservationService.cancelBySeller(command);
+        ReservationCancelResponse response = ReservationCancelResponse.of(info, "판매자 사유 취소가 완료되었습니다.");
+
+        return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 }

@@ -1,7 +1,9 @@
 package org.pgsg.reservation.application.service;
 
 import lombok.RequiredArgsConstructor;
+import org.pgsg.reservation.application.dto.command.ReservationCancelCommand;
 import org.pgsg.reservation.application.dto.command.ReservationCreateCommand;
+import org.pgsg.reservation.application.dto.info.ReservationCancelInfo;
 import org.pgsg.reservation.application.dto.query.ReservationSearchQuery;
 import org.pgsg.reservation.application.dto.result.ReservationCreateResult;
 import org.pgsg.reservation.application.dto.result.ReservationSearchResult;
@@ -10,6 +12,8 @@ import org.pgsg.reservation.domain.exception.ReservationErrorCode;
 import org.pgsg.reservation.domain.exception.ReservationException;
 import org.pgsg.reservation.domain.model.reservation.*;
 import org.pgsg.reservation.domain.model.reservationcandidate.ReservationCandidate;
+import org.pgsg.reservation.domain.model.reservationhistory.ReservationHistory;
+import org.pgsg.reservation.domain.repository.ReservationHistoryRepository;
 import org.pgsg.reservation.domain.service.ReservationDomainService;
 import org.pgsg.reservation.domain.repository.ReservationRepository;
 import org.pgsg.reservation.presentation.dto.response.ReservationCandidateResponse;
@@ -28,6 +32,7 @@ public class ReservationService {
 
     private final ReservationRepository reservationRepository;
     private final ReservationDomainService reservationDomainService;
+    private final ReservationHistoryRepository reservationHistoryRepository;
     // private final ProductClient productClient; // 추후 구현 예정
 
     // 도메인 서비스 호출 전까지의 작업은 트랜잭션 밖으로 분리(추후 고도화 작업시)
@@ -137,6 +142,48 @@ public class ReservationService {
                 .orElse(candidate);
 
         return ReservationCandidateResponse.from(savedCandidate);
+    }
+
+    // 구매자 취소 처리 로직
+    @Transactional
+    public ReservationCancelInfo cancelByBuyer(ReservationCancelCommand command) {
+        Reservation reservation = findById(command.reservationId());
+
+        ReservationHistory history = reservationDomainService.cancelByBuyer(
+                reservation,
+                command.userId(),
+                command.role(),
+                command.reason()
+        );
+
+        reservationHistoryRepository.save(history);
+
+        return ReservationCancelInfo.from(reservation);
+    }
+
+    // 판매자 취소 로직
+    @Transactional
+    public ReservationCancelInfo cancelBySeller(ReservationCancelCommand command) {
+        Reservation reservation = findById(command.reservationId());
+
+        ReservationHistory history = reservationDomainService.cancelBySeller(
+                reservation,
+                command.userId(),
+                command.role(),
+                command.reason()
+        );
+
+        reservationHistoryRepository.save(history);
+
+        return ReservationCancelInfo.from(reservation);
+    }
+
+    /**
+     * 공통 ID 조회 메서드
+     */
+    private Reservation findById(UUID reservationId) {
+        return reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new ReservationException(ReservationErrorCode.RESERVATION_NOT_FOUND));
     }
 
     private boolean isDuplicateApplyViolation(DataIntegrityViolationException e) {

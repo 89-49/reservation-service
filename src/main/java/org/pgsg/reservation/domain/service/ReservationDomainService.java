@@ -5,9 +5,13 @@ import org.pgsg.reservation.domain.exception.ReservationErrorCode;
 import org.pgsg.reservation.domain.exception.ReservationException;
 import org.pgsg.reservation.domain.model.reservation.*;
 import org.pgsg.reservation.domain.model.reservationcandidate.ReservationCandidate;
+import org.pgsg.reservation.domain.model.reservationcandidate.ReservationCandidateStatus;
+import org.pgsg.reservation.domain.model.reservationhistory.ReservationHistory;
 import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.UUID;
 
 
@@ -89,18 +93,98 @@ public class ReservationDomainService {
             throw new ReservationException(ReservationErrorCode.CANNOT_CHANGE_STATUS);
         }
 
+        // 현재 구매자가 없는 상태(reopen된 상태)라면 내가 바로 구매자가 변경
+        boolean shouldBeSelectedImmediately = (reservation.getBuyerInfo() == null);
+
         // 후보자 생성 및 애그리거트에 추가
         ReservationCandidate candidate = ReservationCandidate.create(reservation, userId, nickname);
-        // 현재 후보자가 없을 경우 첫 번째 신청자로 생각
-        boolean isFirstCandidate = reservation.getCandidates().isEmpty();
 
         reservation.addCandidate(candidate);
 
         // 만약 첫 번째 후보자라면 바로 구매자로 선정하는 로직
-        if (isFirstCandidate) {
+        if (shouldBeSelectedImmediately) {
             reservation.changeToNextBuyer(candidate);
         }
 
         return candidate;
+    }
+
+    /**
+     * 구매자 사유 취소 도메인 로직
+     * 구매자 혹은 관리자가 호출하며, 취소 후 다음 대기자에게 예약 권한을 승계함
+     */
+    public ReservationHistory cancelByBuyer(Reservation reservation, UUID userId, String role, String reason) {
+        validateReason(reason);
+
+        // 권한 및 상태 검증
+        reservationValidator.validateCancelByBuyer(reservation, userId, role);
+
+        ReservationStatus previousStatus = reservation.getStatus();
+
+        // 엔티티 상태 변경
+        reservation.cancelByBuyer();
+
+        // 다음 구매자 승계 처리
+        handleNextBuyerSequence(reservation);
+
+        // 이력 객체 생성
+        return ReservationHistory.of(
+                reservation.getId(),
+                previousStatus,
+                reservation.getStatus(),
+                reason,
+                userId
+        );
+    }
+
+    /**
+     * 판매자 사유 취소 도메인 로직
+     * 판매자 혹은 관리자가 호출하며, 취소 후 예약 비활성화 후 상품 삭제 요청
+     */
+    public ReservationHistory cancelBySeller(Reservation reservation, UUID userId, String role, String reason) {
+        validateReason(reason);
+
+        // 권한 및 상태 검증
+        reservationValidator.validateCancelBySeller(reservation, userId, role);
+
+        ReservationStatus previousStatus = reservation.getStatus();
+
+        // 엔티티 상태 변경
+        reservation.cancelBySeller();
+
+        // 이력 객체 생성
+        return ReservationHistory.of(
+                reservation.getId(),
+                previousStatus,
+                reservation.getStatus(),
+                reason,
+                userId
+        );
+    }
+
+    /**
+     * 다음 구매자 승계 내부 로직
+     */
+    private void handleNextBuyerSequence(Reservation reservation) {
+        // WAITING 상태 중 생성일 오름차순 -> ID 오름차순
+        // 대기자 중 가장 우선 우선순위가 높은 사람을 찾음
+        Optional<ReservationCandidate> nextCandidate = reservation.getCandidates().stream()
+                .filter(c -> c.getStatus() == ReservationCandidateStatus.WAITING)
+                .min(Comparator.comparing(ReservationCandidate::getCreatedAt)
+                        .thenComparing(ReservationCandidate::getId));
+
+        if (nextCandidate.isPresent()) {
+            // a. 대기자가 있으면 승계 처리
+            reservation.changeToNextBuyer(nextCandidate.get());
+        } else {
+            // b. 대기자가 없으면 다시 누구나 신청 가능한 상태로 복구
+            reservation.reopen();
+        }
+    }
+
+    private void validateReason(String reason) {
+        if (reason == null || reason.isBlank()) {
+            throw new ReservationException(ReservationErrorCode.INVALID_INPUT);
+        }
     }
 }

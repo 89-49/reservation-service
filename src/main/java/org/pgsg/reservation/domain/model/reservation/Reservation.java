@@ -103,6 +103,15 @@ public class Reservation extends BaseEntity {
         this.status = ReservationStatus.CANCELLED_BY_BUYER;
     }
 
+    // 대기자가 없을 경우, 다시 누구나 신청 가능한 상태로 복구
+    public void reopen() {
+        // 현재 상태가 취소된 상태여야 재오픈 가능 (보안 및 로직 검증)
+        validateStatus(ReservationStatus.CANCELLED_BY_BUYER);
+
+        this.status = ReservationStatus.AVAILABLE;
+        this.buyerInfo = null; // 기존 구매자 정보 제거
+    }
+
     // 판매자 취소: PENDING 또는 PAID 상태에서 판매자가 취소(영구 종료)
     public void cancelBySeller() {
         validateStatus(ReservationStatus.PENDING, ReservationStatus.PAID);
