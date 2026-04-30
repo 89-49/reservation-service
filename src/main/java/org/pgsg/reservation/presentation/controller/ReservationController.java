@@ -3,13 +3,16 @@ package org.pgsg.reservation.presentation.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.pgsg.config.security.UserDetailsImpl;
+import org.pgsg.reservation.application.dto.command.ReservationCancelCommand;
 import org.pgsg.reservation.application.dto.command.ReservationCreateCommand;
+import org.pgsg.reservation.application.dto.info.ReservationCancelInfo;
 import org.pgsg.reservation.application.dto.query.ReservationSearchQuery;
 import org.pgsg.reservation.application.dto.result.ReservationCreateResult;
 import org.pgsg.reservation.application.service.ReservationService;
 import org.pgsg.reservation.presentation.dto.request.ReservationCancelRequest;
 import org.pgsg.reservation.presentation.dto.request.ReservationCreateRequest;
 import org.pgsg.reservation.presentation.dto.request.ReservationSearchRequest;
+import org.pgsg.reservation.presentation.dto.response.ReservationCancelResponse;
 import org.pgsg.reservation.presentation.dto.response.ReservationCandidateResponse;
 import org.pgsg.reservation.presentation.dto.response.ReservationDetailResponse;
 import org.pgsg.reservation.presentation.dto.response.ReservationResponse;
@@ -102,20 +105,43 @@ public class ReservationController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    // 예약 취소
-    @PatchMapping("/{reservationId}/cancel")
-    public ResponseEntity<Void> cancelReservation(
+    // 구매자 사유 취소 (구매자/관리자)
+    @PatchMapping("/{reservationId}/cancel/buyer")
+    public ResponseEntity<ReservationCancelResponse> cancelByBuyer(
             @PathVariable UUID reservationId,
-            @AuthenticationPrincipal UserDetailsImpl userDetails,
-            @Valid @RequestBody ReservationCancelRequest request
+            @RequestBody ReservationCancelRequest request,
+            @AuthenticationPrincipal UserDetailsImpl userDetails // AuthUser를 UserDetailsImpl로 통일
     ) {
-
-        reservationService.cancelReservation(
+        ReservationCancelCommand command = ReservationCancelCommand.of(
                 reservationId,
-                userDetails.getUuid(), // 취소 수행자 ID
-                request.reason() // 취소 사유
+                userDetails.getUuid(),
+                userDetails.getUserRole(),
+                request.reason()
         );
 
-        return ResponseEntity.noContent().build(); // 204 No Content 응답
+        ReservationCancelInfo info = reservationService.cancelByBuyer(command);
+        ReservationCancelResponse response = ReservationCancelResponse.of(info, "구매자 사유 취소가 완료되었습니다.");
+
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    // 판매자 사유로 인한 취소(판매자,관리자)
+    @PatchMapping("/{reservationId}/cancel/seller")
+    public ResponseEntity<ReservationCancelResponse> cancelBySeller(
+            @PathVariable UUID reservationId,
+            @RequestBody ReservationCancelRequest request,
+            @AuthenticationPrincipal UserDetailsImpl userDetails
+    ) {
+        ReservationCancelCommand command = ReservationCancelCommand.of(
+                reservationId,
+                userDetails.getUuid(),
+                userDetails.getUserRole(),
+                request.reason()
+        );
+
+        ReservationCancelInfo info = reservationService.cancelBySeller(command);
+        ReservationCancelResponse response = ReservationCancelResponse.of(info, "판매자 사유 취소가 완료되었습니다.");
+
+        return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 }

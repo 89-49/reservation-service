@@ -110,31 +110,49 @@ public class ReservationDomainService {
     }
 
     /**
-     * 판매자,구매자 예약 취소
-     * 해당 취소 사유자가 권한이 있는지 확인하기
+     * 구매자 사유 취소 도메인 로직
+     * 구매자 혹은 관리자가 호출하며, 취소 후 다음 대기자에게 예약 권한을 승계함
      */
-    public ReservationHistory cancel(Reservation reservation, UUID userId, String reason) {
-        // 취소 사유 검증
-        if (reason == null || reason.isBlank()) {
-            throw new ReservationException(ReservationErrorCode.INVALID_INPUT);
-        }
+    public ReservationHistory cancelByBuyer(Reservation reservation, UUID userId, String role, String reason) {
+        validateReason(reason);
 
-        // 검증 로직
-        reservationValidator.validateCancel(reservation, userId);
+        // 권한 및 상태 검증
+        reservationValidator.validateCancelByBuyer(reservation, userId, role);
 
         ReservationStatus previousStatus = reservation.getStatus();
 
-        // 취소 주체 판별 및 상태 변경
-        if (isBuyer(reservation, userId)) {
-            reservation.cancelByBuyer();
-            // 구매자 취소 시 다음 순번 승계 시도
-            handleNextBuyerSequence(reservation);
-        } else {
-            // 판매자 취소
-            reservation.cancelBySeller();
-        }
+        // 엔티티 상태 변경
+        reservation.cancelByBuyer();
 
-        // 이력 객체 생성 및 반환
+        // 다음 구매자 승계 처리
+        handleNextBuyerSequence(reservation);
+
+        // 이력 객체 생성
+        return ReservationHistory.of(
+                reservation.getId(),
+                previousStatus,
+                reservation.getStatus(),
+                reason,
+                userId
+        );
+    }
+
+    /**
+     * 판매자 사유 취소 도메인 로직
+     * 판매자 혹은 관리자가 호출하며, 취소 후 예약 비활성화 후 상품 삭제 요청
+     */
+    public ReservationHistory cancelBySeller(Reservation reservation, UUID userId, String role, String reason) {
+        validateReason(reason);
+
+        // 권한 및 상태 검증
+        reservationValidator.validateCancelBySeller(reservation, userId, role);
+
+        ReservationStatus previousStatus = reservation.getStatus();
+
+        // 엔티티 상태 변경
+        reservation.cancelBySeller();
+
+        // 이력 객체 생성
         return ReservationHistory.of(
                 reservation.getId(),
                 previousStatus,
@@ -164,8 +182,9 @@ public class ReservationDomainService {
         }
     }
 
-    private boolean isBuyer(Reservation reservation, UUID userId) {
-        return reservation.getBuyerInfo() != null &&
-                reservation.getBuyerInfo().getBuyerId().equals(userId);
+    private void validateReason(String reason) {
+        if (reason == null || reason.isBlank()) {
+            throw new ReservationException(ReservationErrorCode.INVALID_INPUT);
+        }
     }
 }

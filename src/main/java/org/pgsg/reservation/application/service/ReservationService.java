@@ -1,7 +1,9 @@
 package org.pgsg.reservation.application.service;
 
 import lombok.RequiredArgsConstructor;
+import org.pgsg.reservation.application.dto.command.ReservationCancelCommand;
 import org.pgsg.reservation.application.dto.command.ReservationCreateCommand;
+import org.pgsg.reservation.application.dto.info.ReservationCancelInfo;
 import org.pgsg.reservation.application.dto.query.ReservationSearchQuery;
 import org.pgsg.reservation.application.dto.result.ReservationCreateResult;
 import org.pgsg.reservation.application.dto.result.ReservationSearchResult;
@@ -142,24 +144,50 @@ public class ReservationService {
         return ReservationCandidateResponse.from(savedCandidate);
     }
 
-    // 예약 취소
+    // 구매자 취소 처리 로직
     @Transactional
-    public void cancelReservation(UUID reservationId, UUID userId, String reason) {
-        // DB에서 예약 애그리거트 조회
-        Reservation reservation = reservationRepository.findById(reservationId)
-                .orElseThrow(() -> new ReservationException(ReservationErrorCode.RESERVATION_NOT_FOUND));
+    public ReservationCancelInfo cancelByBuyer(ReservationCancelCommand command) {
+        Reservation reservation = findById(command.reservationId());
 
-        // 도메인 서비스에 취소 로직 위임
-        ReservationHistory history = reservationDomainService.cancel(reservation, userId, reason);
+        ReservationHistory history = reservationDomainService.cancelByBuyer(
+                reservation,
+                command.userId(),
+                command.role(),
+                command.reason()
+        );
 
-        // 변경 사항 저장 (Persistence)
-        // 새로 생성된 이력(History)은 명시적으로 저장
         reservationHistoryRepository.save(history);
+
+        return ReservationCancelInfo.from(reservation);
+    }
+
+    // 판매자 취소 로직
+    @Transactional
+    public ReservationCancelInfo cancelBySeller(ReservationCancelCommand command) {
+        Reservation reservation = findById(command.reservationId());
+
+        ReservationHistory history = reservationDomainService.cancelBySeller(
+                reservation,
+                command.userId(),
+                command.role(),
+                command.reason()
+        );
+
+        reservationHistoryRepository.save(history);
+
+        return ReservationCancelInfo.from(reservation);
+    }
+
+    /**
+     * 공통 ID 조회 메서드
+     */
+    private Reservation findById(UUID reservationId) {
+        return reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new ReservationException(ReservationErrorCode.RESERVATION_NOT_FOUND));
     }
 
     private boolean isDuplicateApplyViolation(DataIntegrityViolationException e) {
         String message = e.getMostSpecificCause().getMessage();
         return message != null && message.contains("uk_reservation_candidate_user_id");
     }
-
 }

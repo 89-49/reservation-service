@@ -36,25 +36,41 @@ public class ReservationValidator {
         }
     }
 
-    // 취소 권한 및 상태 검증
-    public void validateCancel(Reservation reservation, UUID userId) {
-        // 예약 객체 자체나 유저 ID가 없는 경우
-        if (reservation == null || userId == null) {
-            throw new ReservationException(ReservationErrorCode.INVALID_INPUT);
-        }
+    // 구매자,관리자 취소 권한 및 상태 검증
+    public void validateCancelByBuyer(Reservation reservation, UUID userId, String role) {
+        validateCommonCancel(reservation, userId);
 
-        // 권한 확인 (판매자 or 구매자 인지)
         boolean isBuyer = reservation.getBuyerInfo() != null &&
                 Objects.equals(reservation.getBuyerInfo().getBuyerId(), userId);
+
+        boolean isAdmin = "ADMIN".equalsIgnoreCase(role);
+
+        if (!isBuyer && !isAdmin) {
+            throw new ReservationException(ReservationErrorCode.UNAUTHORIZED_ACCESS);
+        }
+    }
+
+    // 판매자,관리자 취소 권한 및 상태 검증
+    public void validateCancelBySeller(Reservation reservation, UUID userId, String role) {
+        validateCommonCancel(reservation, userId);
 
         boolean isSeller = reservation.getSellerInfo() != null &&
                 Objects.equals(reservation.getSellerInfo().getSellerId(), userId);
 
-        if (!isBuyer && !isSeller) {
+        boolean isAdmin = "ADMIN".equalsIgnoreCase(role);
+
+        if (!isSeller && !isAdmin) {
             throw new ReservationException(ReservationErrorCode.UNAUTHORIZED_ACCESS);
         }
+    }
 
-        // 상태 확인 (취소 가능한 상태인지)
+    // 공통 취소 가능 상태 검증
+    private void validateCommonCancel(Reservation reservation, UUID userId) {
+        if (reservation == null || userId == null) {
+            throw new ReservationException(ReservationErrorCode.INVALID_INPUT);
+        }
+
+        // 이미 종료된 상태이거나 취소 불가능한 상태인지 확인
         if (reservation.getStatus() == null || !reservation.getStatus().isMutable()) {
             throw new ReservationException(ReservationErrorCode.CANNOT_CHANGE_STATUS);
         }
