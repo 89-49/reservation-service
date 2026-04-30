@@ -173,8 +173,13 @@ public class ReservationDomainService {
             ReservationStatus targetStatus,
             String reason
     ) {
+        validateReason(reason);
+
         // 관리자 권한 및 취소 가능 상태인지 확인
         reservationValidator.validateSearchRequest(adminId, role);
+        if (!"ADMIN".equalsIgnoreCase(role == null ? null : role.trim())) {
+            throw new ReservationException(ReservationErrorCode.UNAUTHORIZED_ACCESS);
+        }
         reservationValidator.validateCommonCancel(reservation, adminId);
 
         // 이력 기록을 위해 변경 전 상태 보관
