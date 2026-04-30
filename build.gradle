@@ -47,7 +47,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
 
     // [Dotenv] - .env 파일 인식용 (추천)
-    implementation 'io.github.cdimascio:dotenv-spring-boot-starter:3.0.0'
+    implementation 'io.github.cdimascio:java-dotenv:5.1.1'
 
     // [Kafka]
     implementation 'org.springframework.kafka:spring-kafka'
