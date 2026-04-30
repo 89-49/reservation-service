@@ -9,7 +9,6 @@ import org.pgsg.reservation.domain.repository.ReservationRepository;
 import org.pgsg.reservation.presentation.dto.request.ReservationAdminCancelRequest;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -31,7 +30,6 @@ public class ReservationExpiryScheduler {
      * 매 1분마다 만료된 예약을 체크하여 자동 취소 처리
      */
     @Scheduled(cron = "0 * * * * *")
-    @Transactional
     public void autoExpireReservations() {
         LocalDateTime threshold = LocalDateTime.now().minusMinutes(60);
         List<ReservationStatus> targetStatuses = List.of(ReservationStatus.PENDING, ReservationStatus.PAID);
