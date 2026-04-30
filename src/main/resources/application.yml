@@ -1,0 +1,67 @@
+server:
+  port: ${SERVER_PORT:8085}
+
+spring:
+  application:
+    name: reservation-service
+
+  profiles:
+    active: dev
+    include: error, reservation-error
+
+  # [필수 1] 설정 로드 순서
+  # .env 파일을 먼저 읽고, 그 다음 외부 Config Server에 접속합니다.
+  config:
+    import:
+      - "optional:file:.env[.properties]"
+      - "optional:configserver:${CONFIG_SERVER:http://34.50.50.170:13100}"
+
+  # [필수 2] 로컬 우선순위 설정
+  cloud:
+    config:
+      allow-override: true
+      override-none: true
+      override-system-properties: false
+      discovery:
+        service-id: config-server
+
+  # [필수 3] 빈 중복 정의 허용
+  main:
+    allow-bean-definition-overriding: true
+
+  # 데이터베이스 설정 (PostgreSQL)
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    url: ${DB_URL}
+
+  # [필수 4] Kafka 설정 (주신 group-id 반영)
+  kafka:
+    bootstrap-servers: ${KAFKA_HOST:localhost}:${KAFKA_PORT:9092}
+    consumer:
+      group-id: reservation-service
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+  jpa:
+    hibernate:
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:validate}
+    show-sql: ${SPRING_JPA_SHOW_SQL:false}
+    defer-datasource-initialization: true
+
+# [필수 5] 보안 및 유레카 설정
+jwt:
+  secret: ${JWT_SECRET}
+
+eureka:
+  instance:
+    instance-id: ${spring.application.name}:${random.value}
+    prefer-ip-address: true
+  client:
+    service-url:
+      default_zone: ${EUREKA_SERVER:http://localhost:8761/eureka/}
