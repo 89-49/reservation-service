@@ -9,10 +9,7 @@ import org.pgsg.reservation.domain.model.reservationcandidate.ReservationCandida
 import org.pgsg.reservation.domain.model.reservationhistory.ReservationHistory;
 import org.springframework.stereotype.Service;
 
-import java.util.Comparator;
-import java.util.Locale;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 
 @Service
@@ -217,7 +214,9 @@ public class ReservationDomainService {
      */
     public ReservationHistory completeReservation(Reservation reservation, UUID userId ,String role) {
         // 권한 검증 로직
-        if (!role.equals("ADMIN") && !reservation.getSellerInfo().getSellerId().equals(userId)) {
+        boolean isSeller = reservation.getSellerInfo() != null && Objects.equals(reservation.getSellerInfo().getSellerId(), userId);
+        boolean isAdmin = "ADMIN".equalsIgnoreCase(role);
+        if (!isAdmin && !isSeller) {
             throw new ReservationException(ReservationErrorCode.UNAUTHORIZED_ACCESS);
         }
 
