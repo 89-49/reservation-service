@@ -46,3 +46,7 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Security & Certificates ###
+*.jks
+kafka.server.truststore.jks
