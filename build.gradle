@@ -39,14 +39,14 @@ dependencies {
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
 
-    // [Spring Cloud] - Config 및 Eureka 연동 필수
+    // [Spring Cloud]
     implementation 'org.springframework.cloud:spring-cloud-starter-config'
     implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
 
-    // [Actuator] - 상태 확인 (management 설정용)
+    // [Actuator] - 상태 확인
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
 
-    // [Dotenv] - .env 파일 인식용 (추천)
+    // [Dotenv] - .env 파일 인식용
     implementation 'io.github.cdimascio:java-dotenv:5.1.1'
 
     // [Kafka]

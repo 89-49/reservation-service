@@ -14,16 +14,12 @@ spring:
   config:
     import:
       - "optional:file:.env[.properties]"
-      - "optional:configserver:${CONFIG_SERVER:http://34.50.50.170:13100}"
+      # - "optional:configserver:${CONFIG_SERVER:http://34.50.50.170:13100}"
 
   # [필수 2] 로컬 우선순위 설정
   cloud:
     config:
-      allow-override: true
-      override-none: true
-      override-system-properties: false
-      discovery:
-        service-id: config-server
+      enabled: false
 
   # [필수 3] 빈 중복 정의 허용
   main:
@@ -34,11 +30,11 @@ spring:
     driver-class-name: org.postgresql.Driver
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
-    url: ${DB_URL}
+    url: ${DB_URL:jdbc:postgresql://reservation-db:5432/reservation_db}
 
   # [필수 4] Kafka 설정
   kafka:
-    bootstrap-servers: ${KAFKA_HOST:localhost}:${KAFKA_PORT:9092}
+    bootstrap-servers: ${KAFKA_HOST:kafka}:${KAFKA_PORT:9092}
     consumer:
       group-id: reservation-service
       auto-offset-reset: earliest
@@ -48,9 +44,15 @@ spring:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
 
+  # [필수 5] Redis 설정
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+
   jpa:
     hibernate:
-      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:validate}
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:update}
     show-sql: ${SPRING_JPA_SHOW_SQL:false}
     defer-datasource-initialization: true
 
@@ -60,7 +62,7 @@ management:
       exposure:
         include: health, info, refresh
 
-# [필수 5] 보안 및 유레카 설정
+# [필수 6] 보안 및 유레카 설정
 jwt:
   secret: ${JWT_SECRET}
 
@@ -68,8 +70,11 @@ eureka:
   instance:
     instance-id: ${spring.application.name}:${random.value}
     prefer-ip-address: true
+    hostname: ${spring.application.name}
   client:
+    enabled: false
     register-with-eureka: true
     fetch-registry: true
     service-url:
-      defaultZone: ${EUREKA_SERVER:http://localhost:8761/eureka/}
+      defaultZone: ${EUREKA_SERVER:http://host.docker.internal:8761/eureka/}
+    registry-fetch-interval-seconds: 30
