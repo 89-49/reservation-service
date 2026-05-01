@@ -34,15 +34,15 @@ spring:
 
   # [필수 4] Kafka 설정
   kafka:
-    bootstrap-servers: ${KAFKA_HOST:kafka}:${KAFKA_PORT:9092}
-    consumer:
-      group-id: reservation-service
-      auto-offset-reset: earliest
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    bootstrap-servers: ${KAFKA_HOST}
+    properties:
+      security.protocol: SSL
+      ssl.truststore.location: file:/app/resources/kafka.server.truststore.jks
+      ssl.truststore.password: _aA123456
+      ssl.endpoint.identification.algorithm: ""
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
 
   # [필수 5] Redis 설정
   data:
@@ -78,3 +78,7 @@ eureka:
     service-url:
       defaultZone: ${EUREKA_SERVER:http://host.docker.internal:8761/eureka/}
     registry-fetch-interval-seconds: 30
+
+topics:
+  reservation:
+    completed: prod-reservation-completed

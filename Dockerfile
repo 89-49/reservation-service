@@ -11,6 +11,9 @@ WORKDIR /app
 
 COPY --from=build /app/build/libs/*.jar app.jar
 
+RUN mkdir -p /app/resources
+COPY src/main/resources/ssl/*.jks /app/resources/
+
 ENV SPRING_PROFILES_ACTIVE=dev
 EXPOSE 8085
 
