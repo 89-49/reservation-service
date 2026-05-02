@@ -17,7 +17,7 @@ services:
     env_file:
       - .env
     volumes:
-      - ./src/main/resources/ssl:/app/ssl
+      - ./src/main/resources/ssl:/app/ssl:ro
     depends_on:
       db:
         condition: service_healthy
