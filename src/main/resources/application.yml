@@ -6,7 +6,7 @@ spring:
     name: reservation-service
 
   profiles:
-    active: dev
+    active: dev , kafka
     include: error, reservation-error
 
   # [필수 1] 설정 로드 순서

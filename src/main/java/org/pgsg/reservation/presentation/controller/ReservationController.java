@@ -112,12 +112,13 @@ public class ReservationController {
     public ResponseEntity<ReservationCancelResponse> cancelByBuyer(
             @PathVariable UUID reservationId,
             @RequestBody ReservationCancelRequest request,
-            @AuthenticationPrincipal UserDetailsImpl userDetails // AuthUser를 UserDetailsImpl로 통일
+            @RequestHeader("X-User-Id") UUID userId,
+            @RequestHeader("X-User-Role") String role
     ) {
         ReservationCancelCommand command = ReservationCancelCommand.of(
                 reservationId,
-                userDetails.getUuid(),
-                userDetails.getUserRole(),
+                userId,
+                role,
                 request.reason()
         );
 
@@ -132,12 +133,13 @@ public class ReservationController {
     public ResponseEntity<ReservationCancelResponse> cancelBySeller(
             @PathVariable UUID reservationId,
             @RequestBody ReservationCancelRequest request,
-            @AuthenticationPrincipal UserDetailsImpl userDetails
+            @RequestHeader("X-User-Id") UUID userId,
+            @RequestHeader("X-User-Role") String role
     ) {
         ReservationCancelCommand command = ReservationCancelCommand.of(
                 reservationId,
-                userDetails.getUuid(),
-                userDetails.getUserRole(),
+                userId,
+                role,
                 request.reason()
         );
 
@@ -152,13 +154,14 @@ public class ReservationController {
     public ResponseEntity<ReservationCancelResponse> expireByAdmin(
             @PathVariable UUID reservationId,
             @RequestBody ReservationAdminCancelRequest request,
-            @AuthenticationPrincipal UserDetailsImpl userDetails
+            @RequestHeader("X-User-Id") UUID userId,
+            @RequestHeader("X-User-Role") String role
     ) {
         ReservationCancelInfo info = reservationService.expireByAdmin(
                 reservationId,
                 request,
-                userDetails.getUuid(),
-                userDetails.getUserRole()
+                userId,
+                role
         );
 
         String message = (request.targetStatus() == ReservationStatus.CANCELLED_BY_BUYER)
