@@ -50,3 +50,6 @@ out/
 ### Security & Certificates ###
 *.jks
 kafka.server.truststore.jks
+
+# Gradle credentials
+gradle.properties

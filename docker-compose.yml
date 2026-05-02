@@ -6,9 +6,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      secrets:
-        - GPR_USER
-        - GPR_TOKEN
+      args:
+        - GPR_USER=${GPR_USER}
+        - GPR_TOKEN=${GPR_TOKEN}
     environment:
       - "SERVER_PORT=${SERVER_PORT:-8085}"
       - "SPRING_PROFILES_ACTIVE=dev"
