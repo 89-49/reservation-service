@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '3.5.13'
     id 'io.spring.dependency-management' version '1.1.7'
+    id 'org.jetbrains.kotlin.jvm' version '1.9.22'
 }
 
 group = 'org.pgsg'
@@ -69,6 +70,11 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
 
+    // [ swagger]
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.0'
+    implementation 'org.jetbrains.kotlin:kotlin-reflect:1.9.22'
+    implementation 'org.jetbrains.kotlin:kotlin-stdlib:1.9.22'
+
     // [Database]
     runtimeOnly 'org.postgresql:postgresql'
 }
@@ -82,10 +88,6 @@ sourceSets {
 tasks.withType(JavaCompile).configureEach {
     options.getGeneratedSourceOutputDirectory().set(querydslDir)
     options.annotationProcessorPath = configurations.annotationProcessor
-
-    dependsOn ':common:jar'
-    def commonJar = project(':common').tasks.named('jar').get().archiveFile
-    classpath = files(commonJar) + classpath
 }
 
 bootJar { enabled = true }

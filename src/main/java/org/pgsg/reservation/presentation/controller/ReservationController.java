@@ -172,12 +172,13 @@ public class ReservationController {
     @PatchMapping("/{reservationId}/complete")
     public ResponseEntity<ReservationCancelResponse> completeReservation(
             @PathVariable UUID reservationId,
-            @AuthenticationPrincipal UserDetailsImpl userDetails
+            @RequestHeader("X-User-Id") UUID userId,
+            @RequestHeader("X-User-Role") String role
     ) {
         ReservationCancelInfo info = reservationService.completeReservation(
                 reservationId,
-                userDetails.getUuid(),
-                userDetails.getUserRole()
+                userId,
+                role
         );
 
         String message = "판매자 채팅 수락에 따라 예약 완료 처리가 완료되었습니다.";
