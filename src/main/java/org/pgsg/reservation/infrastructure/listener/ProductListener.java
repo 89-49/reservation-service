@@ -18,7 +18,7 @@ public class ProductListener {
     /**
      * 상품 서비스에서 타임딜 상품이 생성되었을 때의 이벤트를 수신합니다.
      */
-    @KafkaListener(topics = "time-deal-topic",groupId = "product-group")
+    @KafkaListener(topics = "prod-product-created",groupId = "product-group")
     public void handleTimeDealEvent(TimeDealProductEvent event) {
         ReservationCreateCommand command = ReservationCreateCommand.builder()
                 .productId(event.productId())

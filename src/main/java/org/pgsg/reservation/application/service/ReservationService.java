@@ -38,7 +38,6 @@ public class ReservationService {
     private final ReservationDomainService reservationDomainService;
     private final ReservationHistoryRepository reservationHistoryRepository;
     private final ReservationEventPublisher reservationEventPublisher;
-    // private final ProductClient productClient; // 추후 구현 예정
 
     // 도메인 서비스 호출 전까지의 작업은 트랜잭션 밖으로 분리(추후 고도화 작업시)
     @Transactional

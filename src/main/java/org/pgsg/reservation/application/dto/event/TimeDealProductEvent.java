@@ -1,18 +1,24 @@
 package org.pgsg.reservation.application.dto.event;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonProperty; // 추가됨
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 public record TimeDealProductEvent(
         UUID productId,
+
+        @JsonProperty("productName")
         String name,
+
+        @JsonProperty("productPrice")
         Integer price,
 
-        // JSON 배열 [YYYY, M, D, H, m, s] 형식을 LocalDateTime으로 매핑
         @JsonFormat(shape = JsonFormat.Shape.ARRAY)
         LocalDateTime endTime,
 
         UUID sellerId,
+
+        @JsonProperty("sellerNickName")
         String sellerName
 ) {}

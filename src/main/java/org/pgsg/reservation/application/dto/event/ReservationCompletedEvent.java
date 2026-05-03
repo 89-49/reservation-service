@@ -1,11 +1,8 @@
 package org.pgsg.reservation.application.dto.event;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import org.pgsg.reservation.domain.model.reservation.Reservation;
-
 import java.util.UUID;
 
-@JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY)
 public record ReservationCompletedEvent(
         UUID reservationId,
         UUID productId,
@@ -24,8 +21,8 @@ public record ReservationCompletedEvent(
                 reservation.getProductInfo().getProductPrice(),
                 reservation.getSellerInfo().getSellerId(),
                 reservation.getSellerInfo().getSellerName(),
-                reservation.getBuyerInfo().getBuyerId(),
-                reservation.getBuyerInfo().getBuyerName()
+                reservation.getBuyerInfo() != null ? reservation.getBuyerInfo().getBuyerId() : null,
+                reservation.getBuyerInfo() != null ? reservation.getBuyerInfo().getBuyerName() : "Unknown"
         );
     }
 }
