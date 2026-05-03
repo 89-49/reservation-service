@@ -61,7 +61,12 @@ public class ReservationService {
                     command.getEndTime()
             );
 
-            Reservation saved = reservationRepository.save(reservation);
+            Reservation saved;
+            try {
+                saved = reservationRepository.save(reservation);
+            }catch (DataIntegrityViolationException e) {
+                throw new ReservationException(ReservationErrorCode.ALREADY_EXISTS);
+            }
 
             return ReservationCreateResult.from(saved);
 
