@@ -1,18 +1,20 @@
 package org.pgsg.reservation.application.dto.event;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import org.pgsg.reservation.domain.model.reservation.Reservation;
 
 import java.util.UUID;
 
+@JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY)
 public record ReservationCompletedEvent(
         UUID reservationId,
         UUID productId,
         String productName,
-        Integer productPrice,    // [추가] 누락된 필드
+        Integer productPrice,
         UUID sellerId,
-        String sellerNickName,   // [수정] N 대문자로 변경 (JSON 키와 일치)
+        String sellerNickName,
         UUID buyerId,
-        String buyerNickName     // [수정] N 대문자로 변경 (JSON 키와 일치)
+        String buyerNickName
 ) {
     public static ReservationCompletedEvent from(Reservation reservation) {
         return new ReservationCompletedEvent(

@@ -68,7 +68,7 @@ dependencies {
     annotationProcessor "jakarta.persistence:jakarta.persistence-api"
 
     // [Common Module]
-    implementation 'org.pgsg:common:0.2.0-SNAPSHOT'
+    implementation 'org.pgsg:common:0.2.6-SNAPSHOT'
 
     // [Spring Starters]
     implementation 'org.springframework.boot:spring-boot-starter-web'
