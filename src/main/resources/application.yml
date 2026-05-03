@@ -6,7 +6,7 @@ spring:
     name: reservation-service
 
   profiles:
-    active: dev
+    active: dev , kafka
     include: error, reservation-error
 
   # [필수 1] 설정 로드 순서
@@ -14,12 +14,14 @@ spring:
   config:
     import:
       - "optional:file:.env[.properties]"
-      # - "optional:configserver:${CONFIG_SERVER:http://34.50.50.170:13100}"
+      - "optional:configserver:${CONFIG_SERVER:http://34.50.50.170:13100}"
 
   # [필수 2] 로컬 우선순위 설정
   cloud:
     config:
       enabled: false
+      allow-override: true
+      override-none: false
 
   # [필수 3] 빈 중복 정의 허용
   main:
@@ -34,15 +36,15 @@ spring:
 
   # [필수 4] Kafka 설정
   kafka:
-    bootstrap-servers: ${KAFKA_HOST:kafka}:${KAFKA_PORT:9092}
-    consumer:
-      group-id: reservation-service
-      auto-offset-reset: earliest
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    bootstrap-servers: ${KAFKA_HOST}
+    properties:
+      security.protocol: SSL
+      ssl.truststore.location: "/app/ssl/kafka.server.truststore.jks"
+      ssl.truststore.password: _aA123456
+      ssl.endpoint.identification.algorithm: ""
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
 
   # [필수 5] Redis 설정
   data:
@@ -78,3 +80,7 @@ eureka:
     service-url:
       defaultZone: ${EUREKA_SERVER:http://host.docker.internal:8761/eureka/}
     registry-fetch-interval-seconds: 30
+
+topics:
+  reservation:
+    completed: prod-reservation-completed

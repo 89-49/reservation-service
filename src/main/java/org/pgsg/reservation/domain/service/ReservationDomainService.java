@@ -40,7 +40,7 @@ public class ReservationDomainService {
         // 역할에 따른 필터링
         String normalizedRole = role.trim().toUpperCase(Locale.ROOT);
         if ("ADMIN".equals(normalizedRole)) {
-            return new SearchPolicy(userId, false, false);
+            return new SearchPolicy(null, false, false);
         }
         if ("SELLER".equals(normalizedRole)) {
             return new SearchPolicy(userId, false, true);

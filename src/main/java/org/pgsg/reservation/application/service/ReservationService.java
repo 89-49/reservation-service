@@ -3,6 +3,7 @@ package org.pgsg.reservation.application.service;
 import lombok.RequiredArgsConstructor;
 import org.pgsg.reservation.application.dto.command.ReservationCancelCommand;
 import org.pgsg.reservation.application.dto.command.ReservationCreateCommand;
+import org.pgsg.reservation.application.dto.event.ReservationEventPublisher;
 import org.pgsg.reservation.application.dto.info.ReservationCancelInfo;
 import org.pgsg.reservation.application.dto.query.ReservationSearchQuery;
 import org.pgsg.reservation.application.dto.result.ReservationCreateResult;
@@ -34,6 +35,7 @@ public class ReservationService {
     private final ReservationRepository reservationRepository;
     private final ReservationDomainService reservationDomainService;
     private final ReservationHistoryRepository reservationHistoryRepository;
+    private final ReservationEventPublisher reservationEventPublisher;
     // private final ProductClient productClient; // 추후 구현 예정
 
     // 도메인 서비스 호출 전까지의 작업은 트랜잭션 밖으로 분리(추후 고도화 작업시)
@@ -211,6 +213,8 @@ public class ReservationService {
         ReservationHistory history = reservationDomainService.completeReservation(reservation,userId,role);
 
         reservationHistoryRepository.save(history);
+
+        reservationEventPublisher.publishReservationCompleted(reservation);
 
         return ReservationCancelInfo.from(reservation);
     }

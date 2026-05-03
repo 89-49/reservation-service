@@ -16,6 +16,8 @@ services:
       - "${SERVER_PORT:-8085}:${SERVER_PORT:-8085}"
     env_file:
       - .env
+    volumes:
+      - ./src/main/resources/ssl:/app/ssl:ro
     depends_on:
       db:
         condition: service_healthy
