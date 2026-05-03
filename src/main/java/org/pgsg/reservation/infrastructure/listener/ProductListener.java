@@ -5,6 +5,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.pgsg.reservation.application.dto.command.ReservationCreateCommand;
 import org.pgsg.reservation.application.dto.event.TimeDealProductEvent;
 import org.pgsg.reservation.application.service.ReservationService;
+import org.pgsg.reservation.domain.exception.ReservationErrorCode;
+import org.pgsg.reservation.domain.exception.ReservationException;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
@@ -29,7 +31,15 @@ public class ProductListener {
                 .sellerName(event.sellerName())
                 .build();
 
-        reservationService.createReservation(command);
+        try {
+            reservationService.createReservation(command);
+        }catch (ReservationException e){
+            if (e.getErrorCode() == ReservationErrorCode.ALREADY_EXISTS) {
+                log.info("중복 예약 생성 이벤트 무시: productId={}", event.productId());
+                return;
+            }
+            throw e;
+        }
     }
 
 }
