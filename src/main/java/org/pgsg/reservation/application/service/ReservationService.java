@@ -1,6 +1,7 @@
 package org.pgsg.reservation.application.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.pgsg.reservation.application.dto.command.ReservationCancelCommand;
 import org.pgsg.reservation.application.dto.command.ReservationCreateCommand;
 import org.pgsg.reservation.application.dto.event.ReservationEventPublisher;
@@ -30,6 +31,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ReservationService {
 
     private final ReservationRepository reservationRepository;
@@ -41,36 +43,33 @@ public class ReservationService {
     // 도메인 서비스 호출 전까지의 작업은 트랜잭션 밖으로 분리(추후 고도화 작업시)
     @Transactional
     public ReservationCreateResult createReservation(ReservationCreateCommand command) {
+        // 중복 검증
+        if (reservationRepository.existsByProductId(command.getProductId())) {
+            throw new ReservationException(ReservationErrorCode.ALREADY_EXISTS);
+        }
 
-        // 구매자 정보(VO) 생성
-        BuyerInfo buyer = BuyerInfo.of(command.getBuyerId(), command.getBuyerNickname());
-
-        // 상품 및 판매자 정보 조회(추후 구현 예정)
-        // ProductResponse productResponse = productClient.getProductDetails(command.getProductId());
-
-        // 임시로 생성(추후 상품 판매 정보 조회시 수정 필요)
-        SellerInfo seller = SellerInfo.of(
-                UUID.randomUUID(), // productResponse.getSellerId()
-                "임시 판매자" // productResponse.getSellerName()
-        );
+        // VO 생성
+        SellerInfo seller = SellerInfo.of(command.getSellerId(), "test"); // 추후 수정 필요함(user-service연결 혹은 product에서 받아야함)
         ProductInfo product = ProductInfo.of(
                 command.getProductId(),
-                50000,             // productResponse.getPrice()
-                "타임딜 특가 상품"    // productResponse.getName()
+                command.getPrice(),
+                command.getProductName(),
+                command.getEndTime()
         );
 
-        // 도메인 서비스 호출
-        Reservation reservation = reservationDomainService.createReservation(buyer, seller, product);
+        // 도메인 서비스 호출 (buyer는 null로 전달)
+        Reservation reservation = reservationDomainService.createReservation(
+                seller,
+                product,
+                command.getEndTime()
+        );
 
-        // ransaction outbox 패턴에 기반한 이벤트 발송 로직 추가 예정
+        Reservation saved = reservationRepository.save(reservation);
 
-        // DB 저장
-        Reservation savedReservation = reservationRepository.save(reservation);
-
-        // [결과 반환] Result DTO로 변환하여 Controller로 전달
+        // 저장 및 결과 반환
         return ReservationCreateResult.builder()
-                .reservationId(savedReservation.getId())
-                .status(savedReservation.getStatus().name())
+                .reservationId(saved.getId())
+                .status(saved.getStatus().name())
                 .build();
     }
 

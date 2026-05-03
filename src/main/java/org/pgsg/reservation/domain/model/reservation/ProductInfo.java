@@ -2,6 +2,8 @@ package org.pgsg.reservation.domain.model.reservation;
 
 import jakarta.persistence.Embeddable;
 import lombok.*;
+
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Embeddable
@@ -12,4 +14,5 @@ public class ProductInfo {
     private UUID productId;
     private Integer productPrice;
     private String productName;
+    private LocalDateTime endTime;
 }
