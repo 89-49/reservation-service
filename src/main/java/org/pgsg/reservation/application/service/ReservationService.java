@@ -43,34 +43,33 @@ public class ReservationService {
     // 도메인 서비스 호출 전까지의 작업은 트랜잭션 밖으로 분리(추후 고도화 작업시)
     @Transactional
     public ReservationCreateResult createReservation(ReservationCreateCommand command) {
-        // 중복 검증
-        if (reservationRepository.existsByProductId(command.getProductId())) {
-            throw new ReservationException(ReservationErrorCode.ALREADY_EXISTS);
+        try {
+            if (reservationRepository.existsByProductId(command.getProductId())) {
+                throw new ReservationException(ReservationErrorCode.ALREADY_EXISTS);
+            }
+
+            SellerInfo seller = SellerInfo.of(command.getSellerId(), "test");
+            ProductInfo product = ProductInfo.of(
+                    command.getProductId(),
+                    command.getPrice(),
+                    command.getProductName(),
+                    command.getEndTime()
+            );
+
+            Reservation reservation = reservationDomainService.createReservation(
+                    seller,
+                    product,
+                    command.getEndTime()
+            );
+
+            Reservation saved = reservationRepository.save(reservation);
+
+            return ReservationCreateResult.from(saved);
+
+        } catch (Throwable t) {
+            t.printStackTrace();
+            throw t;
         }
-
-        // VO 생성
-        SellerInfo seller = SellerInfo.of(command.getSellerId(), "test"); // 추후 수정 필요함(user-service연결 혹은 product에서 받아야함)
-        ProductInfo product = ProductInfo.of(
-                command.getProductId(),
-                command.getPrice(),
-                command.getProductName(),
-                command.getEndTime()
-        );
-
-        // 도메인 서비스 호출 (buyer는 null로 전달)
-        Reservation reservation = reservationDomainService.createReservation(
-                seller,
-                product,
-                command.getEndTime()
-        );
-
-        Reservation saved = reservationRepository.save(reservation);
-
-        // 저장 및 결과 반환
-        return ReservationCreateResult.builder()
-                .reservationId(saved.getId())
-                .status(saved.getStatus().name())
-                .build();
     }
 
     // 예약 목록 조회

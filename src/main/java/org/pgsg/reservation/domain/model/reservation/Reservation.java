@@ -29,6 +29,10 @@ public class Reservation extends BaseEntity {
     private ReservationStatus status;
 
     @Embedded
+    @AttributeOverrides({
+            @AttributeOverride(name = "buyerId", column = @Column(name = "buyer_id", nullable = true)),
+            @AttributeOverride(name = "buyerName", column = @Column(name = "buyer_name", nullable = true))
+    })
     private BuyerInfo buyerInfo;
 
     @Embedded
