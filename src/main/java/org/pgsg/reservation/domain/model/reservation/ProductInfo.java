@@ -16,5 +16,6 @@ public class ProductInfo {
     private UUID productId;
     private Integer productPrice;
     private String productName;
+    @Column(nullable = false)
     private LocalDateTime endTime;
 }
