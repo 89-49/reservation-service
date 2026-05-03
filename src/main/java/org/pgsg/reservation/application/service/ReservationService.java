@@ -70,9 +70,9 @@ public class ReservationService {
 
             return ReservationCreateResult.from(saved);
 
-        } catch (Throwable t) {
-            t.printStackTrace();
-            throw t;
+        } catch (DataIntegrityViolationException e) {
+            // 동시에 들어온 요청으로 인해 유니크 제약 조건 위반 시 409 에러 발생
+            throw new ReservationException(ReservationErrorCode.ALREADY_EXISTS);
         }
     }
 
