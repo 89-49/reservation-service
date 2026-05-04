@@ -186,4 +186,20 @@ public class ReservationController {
 
         return ResponseEntity.ok(ReservationCancelResponse.of(info, message));
     }
+
+    // 거래 완료
+    @PatchMapping("/{reservationId}/tradeconfirm")
+    public ResponseEntity<ReservationCancelResponse> confirmTrade(
+            @PathVariable UUID reservationId,
+            @RequestHeader("X-User-Id") UUID userId,
+            @RequestHeader("X-User-Role") String role
+    ) {
+        ReservationCancelInfo info = reservationService.confirmTrade(
+                reservationId
+        );
+
+        String message = "거래가 성공적으로 완료되어 확정 처리되었습니다.";
+
+        return ResponseEntity.ok(ReservationCancelResponse.of(info, message));
+    }
 }

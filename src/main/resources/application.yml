@@ -6,7 +6,7 @@ spring:
     name: reservation-service
 
   profiles:
-    active: dev , kafka
+    active: dev,kafka
     include: error, reservation-error
 
   # [필수 1] 설정 로드 순서
@@ -55,7 +55,11 @@ spring:
   jpa:
     hibernate:
       ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:update}
-    show-sql: ${SPRING_JPA_SHOW_SQL:false}
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        use_sql_comments: true
     defer-datasource-initialization: true
 
 management:
@@ -84,3 +88,11 @@ eureka:
 topics:
   reservation:
     completed: prod-reservation-completed
+  product:
+    created: prod-product-created
+
+logging:
+  level:
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE
+    org.pgsg.common.domain.OutboxRepository: OFF

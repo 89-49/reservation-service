@@ -1,4 +1,4 @@
-package org.pgsg.reservation.application.dto.event;
+package org.pgsg.reservation.infrastructure.listener.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty; // 추가됨
@@ -8,10 +8,8 @@ import java.util.UUID;
 public record TimeDealProductEvent(
         UUID productId,
 
-        @JsonProperty("productName")
         String name,
 
-        @JsonProperty("productPrice")
         Integer price,
 
         @JsonFormat(shape = JsonFormat.Shape.ARRAY)
