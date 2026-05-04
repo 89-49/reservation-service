@@ -1,4 +1,4 @@
-package org.pgsg.reservation.application.dto.event;
+package org.pgsg.reservation.infrastructure.listener.dto;
 
 import org.pgsg.reservation.domain.model.reservation.Reservation;
 

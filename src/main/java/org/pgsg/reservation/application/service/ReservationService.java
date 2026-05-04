@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.pgsg.reservation.application.dto.command.ReservationCancelCommand;
 import org.pgsg.reservation.application.dto.command.ReservationCreateCommand;
-import org.pgsg.reservation.application.dto.event.ReservationEventPublisher;
+import org.pgsg.reservation.infrastructure.listener.dto.ReservationEventPublisher;
 import org.pgsg.reservation.application.dto.info.ReservationCancelInfo;
 import org.pgsg.reservation.application.dto.query.ReservationSearchQuery;
 import org.pgsg.reservation.application.dto.result.ReservationCreateResult;
@@ -221,6 +221,18 @@ public class ReservationService {
         return ReservationCancelInfo.from(reservation);
     }
 
+    // 거래 완료
+    @Transactional
+    public ReservationCancelInfo confirmTrade(UUID reservationId) {
+
+        Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new ReservationException(ReservationErrorCode.RESERVATION_NOT_FOUND));
+
+        reservation.close();
+
+        return ReservationCancelInfo.from(reservation);
+    }
+
     /**
      * 공통 ID 조회 메서드
      */
@@ -233,5 +245,4 @@ public class ReservationService {
         String message = e.getMostSpecificCause().getMessage();
         return message != null && message.contains("uk_reservation_candidate_user_id");
     }
-
 }
