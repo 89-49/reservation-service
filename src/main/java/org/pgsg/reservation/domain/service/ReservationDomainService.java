@@ -9,6 +9,7 @@ import org.pgsg.reservation.domain.model.reservationcandidate.ReservationCandida
 import org.pgsg.reservation.domain.model.reservationhistory.ReservationHistory;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.*;
 
 
@@ -22,11 +23,13 @@ public class ReservationDomainService {
      * 예약 생성 로직
      * 각 VO들을 조합하여 예약 엔티티를 생성하고, 도메인 규칙을 검증
      */
-    public Reservation createReservation(BuyerInfo buyer, SellerInfo seller, ProductInfo product) {
+    public Reservation createReservation(SellerInfo seller, ProductInfo product, LocalDateTime endTime) {
 
-        reservationValidator.validate(buyer, seller, product);
+        // 검증 로직
+        reservationValidator.validate(seller, product);
 
-        return Reservation.create(buyer, seller, product);
+        // 엔티티 생성
+        return Reservation.create(null, seller, product, endTime);
     }
 
     /**

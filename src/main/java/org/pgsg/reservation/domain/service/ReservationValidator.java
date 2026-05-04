@@ -11,22 +11,11 @@ import java.util.UUID;
 
 public class ReservationValidator {
 
-    public void validate(BuyerInfo buyer, SellerInfo seller, ProductInfo product) {
-
-        if (buyer == null || seller == null || product == null) {
+    // 예약 생성
+    public void validate(SellerInfo seller, ProductInfo product) {
+        if (seller == null || product == null || seller.getSellerId() == null) {
             throw new ReservationException(ReservationErrorCode.INVALID_INPUT);
         }
-
-        if (buyer.getBuyerId() == null || seller.getSellerId() == null) {
-            throw new ReservationException(ReservationErrorCode.INVALID_INPUT);
-        }
-
-        // 본인 상품 예약 금지 규칙
-        if (isSamePerson(buyer, seller)) {
-            throw new ReservationException(ReservationErrorCode.INVALID_STATUS);
-        }
-
-        // 검증 규칙 추가 예정
     }
 
     public void validateSearchRequest(UUID userId, String role) {
@@ -80,5 +69,4 @@ public class ReservationValidator {
     private boolean isSamePerson(BuyerInfo buyer, SellerInfo seller) {
         return buyer.getBuyerId().equals(seller.getSellerId());
     }
-
 }

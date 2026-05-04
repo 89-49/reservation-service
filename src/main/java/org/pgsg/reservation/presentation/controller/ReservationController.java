@@ -36,15 +36,15 @@ public class ReservationController {
     // 예약 생성
     @PostMapping
     public ResponseEntity<ReservationResponse> createReservation(
-            @Valid @RequestBody ReservationCreateRequest request,
-            @RequestHeader(value = "X-User-Id") UUID userId,
-            @RequestHeader(value = "X-User-Nickname") String nickname
+            @Valid @RequestBody ReservationCreateRequest request
     ) {
-
         ReservationCreateCommand command = ReservationCreateCommand.builder()
                 .productId(request.getProductId())
-                .buyerId(userId)
-                .buyerNickname(nickname)
+                .productName(request.getProductName())
+                .price(request.getPrice())
+                .endTime(request.getEndTime())
+                .sellerId(request.getSellerId())
+                .sellerName(request.getSellerNickname())
                 .build();
 
         ReservationCreateResult result = reservationService.createReservation(command);

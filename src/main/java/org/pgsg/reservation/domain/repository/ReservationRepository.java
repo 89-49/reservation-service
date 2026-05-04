@@ -24,4 +24,7 @@ public interface ReservationRepository {
 
     // 예약 만료 스케줄링용
     List<Reservation> findAllByStatusInAndModifiedAtBefore(List<ReservationStatus> statuses, LocalDateTime threshold);
+
+    // 상품 존재 여부 확인
+    boolean existsByProductId(UUID productId);
 }

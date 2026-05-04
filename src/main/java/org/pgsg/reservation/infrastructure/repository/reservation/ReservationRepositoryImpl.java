@@ -41,6 +41,11 @@ public class ReservationRepositoryImpl implements ReservationRepository {
     }
 
     @Override
+    public boolean existsByProductId(UUID productId) {
+        return reservationJpaRepository.existsByProductInfoProductId(productId);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public List<Reservation> findAllByStatusInAndModifiedAtBefore(
             List<ReservationStatus> statuses,

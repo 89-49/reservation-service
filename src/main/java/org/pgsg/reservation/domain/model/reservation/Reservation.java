@@ -8,6 +8,7 @@ import org.pgsg.reservation.domain.exception.ReservationErrorCode;
 import org.pgsg.reservation.domain.model.reservationcandidate.ReservationCandidate;
 import org.pgsg.reservation.domain.model.reservationcandidate.ReservationCandidateStatus;
 
+import java.time.LocalDateTime;
 import java.util.*;
 
 @Entity
@@ -28,6 +29,10 @@ public class Reservation extends BaseEntity {
     private ReservationStatus status;
 
     @Embedded
+    @AttributeOverrides({
+            @AttributeOverride(name = "buyerId", column = @Column(name = "buyer_id", nullable = true)),
+            @AttributeOverride(name = "buyerName", column = @Column(name = "buyer_name", nullable = true))
+    })
     private BuyerInfo buyerInfo;
 
     @Embedded
@@ -55,15 +60,17 @@ public class Reservation extends BaseEntity {
     }
 
     // 예약 생성: 초기 상태 AVAILABLE
-    public static Reservation create(BuyerInfo buyer, SellerInfo seller, ProductInfo product) {
-        Objects.requireNonNull(buyer, "buyer must not be null");
+    public static Reservation create(BuyerInfo buyer, SellerInfo seller, ProductInfo product, LocalDateTime endTime) {
         Objects.requireNonNull(seller, "seller must not be null");
         Objects.requireNonNull(product, "product must not be null");
+
         Reservation reservation = new Reservation();
         reservation.buyerInfo = buyer;
         reservation.sellerInfo = seller;
         reservation.productInfo = product;
         reservation.status = ReservationStatus.AVAILABLE;
+        reservation.createdAt = LocalDateTime.now();
+
         return reservation;
     }
 
