@@ -30,16 +30,16 @@ spring:
   # 데이터베이스 설정 (PostgreSQL)
   datasource:
     driver-class-name: org.postgresql.Driver
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
-    url: ${DB_URL:jdbc:postgresql://reservation-db:5432/reservation_db}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/reservation_db}
+    username: ${DB_USERNAME:postgres} # 추가
+    password: ${DB_PASSWORD:postgres}
 
   # [필수 4] Kafka 설정
   kafka:
     bootstrap-servers: ${KAFKA_HOST}
     properties:
       security.protocol: SSL
-      ssl.truststore.location: "/app/ssl/kafka.server.truststore.jks"
+      ssl.truststore.location: ${KAFKA_SSL_PATH:/app/ssl/kafka.server.truststore.jks}
       ssl.truststore.password: _aA123456
       ssl.endpoint.identification.algorithm: ""
     producer:
@@ -49,7 +49,7 @@ spring:
   # [필수 5] Redis 설정
   data:
     redis:
-      host: ${REDIS_HOST:redis}
+      host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
 
   jpa:
@@ -82,7 +82,7 @@ eureka:
     register-with-eureka: true
     fetch-registry: true
     service-url:
-      defaultZone: ${EUREKA_SERVER:http://host.docker.internal:8761/eureka/}
+      defaultZone: ${EUREKA_SERVER:http://localhost:8761/eureka/}
     registry-fetch-interval-seconds: 30
 
 topics:

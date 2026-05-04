@@ -12,6 +12,10 @@ services:
     environment:
       - "SERVER_PORT=${SERVER_PORT:-8085}"
       - "SPRING_PROFILES_ACTIVE=dev"
+      - "DB_URL=jdbc:postgresql://reservation-db:5432/${DB_NAME:-reservation_db}"
+      - "REDIS_HOST=reservation-redis"
+      - "EUREKA_SERVER=http://host.docker.internal:8761/eureka/"
+      - "KAFKA_SSL_PATH=/app/ssl/kafka.server.truststore.jks"
     ports:
       - "${SERVER_PORT:-8085}:${SERVER_PORT:-8085}"
     env_file:
