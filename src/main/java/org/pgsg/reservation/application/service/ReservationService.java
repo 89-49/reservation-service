@@ -165,6 +165,26 @@ public class ReservationService {
         return ReservationCancelInfo.from(reservation);
     }
 
+    // 추후 결제 시스템 연동시 트리거 발동
+    @Transactional
+    public ReservationCancelInfo confirmPayment(UUID reservationId, UUID userId, String role) {
+        Reservation reservation = findById(reservationId);
+
+        ReservationHistory history = reservationDomainService.confirmPayment(
+                reservation,
+                userId,
+                role
+        );
+
+        if (history != null) {
+            reservationHistoryRepository.save(history);
+        } else {
+            log.info("이미 결제 완료 처리된 예약입니다(중복 요청 무시): reservationId={}", reservationId);
+        }
+
+        return ReservationCancelInfo.from(reservation);
+    }
+
     // 판매자 취소 로직
     @Transactional
     public ReservationCancelInfo cancelBySeller(ReservationCancelCommand command) {
@@ -244,4 +264,5 @@ public class ReservationService {
         String message = e.getMostSpecificCause().getMessage();
         return message != null && message.contains("uk_reservation_candidate_user_id");
     }
+
 }

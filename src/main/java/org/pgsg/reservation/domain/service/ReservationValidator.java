@@ -39,6 +39,26 @@ public class ReservationValidator {
         }
     }
 
+    // 시스템,관리자 결제 완료 권한 및 상태 검증
+    public void validateConfirmPayment(Reservation reservation, UUID userId, String role) {
+        if (reservation == null || userId == null) {
+            throw new ReservationException(ReservationErrorCode.INVALID_INPUT);
+        }
+
+        // 권한 검증: 관리자,SYSTEM만 허용함
+        String normalizedRole = role == null ? "" : role.trim();
+        boolean isAdmin = "ADMIN".equalsIgnoreCase(normalizedRole);
+        boolean isSystem = "SYSTEM".equalsIgnoreCase(normalizedRole);
+        if (!isAdmin && !isSystem) {
+            throw new ReservationException(ReservationErrorCode.UNAUTHORIZED_ACCESS);
+        }
+
+        // 상태 검증: 오직 PENDING 상태에서만 결제 확인이 가능함
+        if (reservation.getStatus() != ReservationStatus.PENDING) {
+            throw new ReservationException(ReservationErrorCode.CANNOT_CHANGE_STATUS);
+        }
+    }
+
     // 판매자,관리자 취소 권한 및 상태 검증
     public void validateCancelBySeller(Reservation reservation, UUID userId, String role) {
         validateCommonCancel(reservation, userId);

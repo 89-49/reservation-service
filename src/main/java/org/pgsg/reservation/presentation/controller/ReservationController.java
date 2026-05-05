@@ -126,6 +126,23 @@ public class ReservationController {
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
+    // 결제 완료
+    @PatchMapping("/{reservationId}/paymentconfirm")
+    public ResponseEntity<ReservationCancelInfo> confirmPayment(
+            @PathVariable UUID reservationId,
+            @RequestHeader("X-User-Id") UUID userId,
+            @RequestHeader("X-User-Role") String role
+    ) {
+
+        ReservationCancelInfo result = reservationService.confirmPayment(
+                reservationId,
+                userId,
+                role
+        );
+
+        return ResponseEntity.ok(result);
+    }
+
     // 판매자 사유로 인한 취소(판매자,관리자)
     @PatchMapping("/{reservationId}/cancel/seller")
     public ResponseEntity<ReservationCancelResponse> cancelBySeller(
