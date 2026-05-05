@@ -9,7 +9,6 @@ import org.pgsg.reservation.domain.model.reservationcandidate.ReservationCandida
 import org.pgsg.reservation.domain.model.reservationhistory.ReservationHistory;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.*;
 
 
@@ -133,6 +132,29 @@ public class ReservationDomainService {
                 previousStatus,
                 reservation.getStatus(),
                 reason,
+                userId
+        );
+    }
+
+    /**
+     * 결제 완료 로직
+     * 관리자가 호출 or 결제 서비스에서 이벤트를 받을 경우, 상품 상태를 (PENDING -> PAID)로 변경
+     */
+    public ReservationHistory confirmPayment(Reservation reservation, UUID userId, String role) {
+
+        // 권한 검증 (관리자 혹은 시스템 권한)
+        reservationValidator.validateConfirmPayment(reservation, userId, role);
+
+        ReservationStatus previousStatus = reservation.getStatus();
+
+        // 상태 전이 검증 (PENDING일 때만 결제 완료 가능)
+        reservation.markAsPaid();
+
+        return ReservationHistory.of(
+                reservation.getId(),
+                previousStatus,
+                reservation.getStatus(),
+                "결제 승인 완료: 상태가 PAID로 변경되었습니다.", // reason
                 userId
         );
     }
@@ -264,5 +286,6 @@ public class ReservationDomainService {
             throw new ReservationException(ReservationErrorCode.INVALID_INPUT);
         }
     }
+
 
 }

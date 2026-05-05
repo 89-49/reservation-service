@@ -8,7 +8,6 @@ import org.pgsg.reservation.domain.exception.ReservationErrorCode;
 import org.pgsg.reservation.domain.model.reservationcandidate.ReservationCandidate;
 import org.pgsg.reservation.domain.model.reservationcandidate.ReservationCandidateStatus;
 
-import java.time.LocalDateTime;
 import java.util.*;
 
 @Entity
@@ -55,7 +54,7 @@ public class Reservation extends BaseEntity {
     }
 
     public void removeCandidate(ReservationCandidate candidate) {
-        //validateStatus(ReservationStatus.AVAILABLE);
+        validateStatus(ReservationStatus.AVAILABLE);
         this.candidates.remove(candidate);
     }
 
