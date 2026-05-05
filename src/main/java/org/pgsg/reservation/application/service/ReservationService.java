@@ -176,7 +176,11 @@ public class ReservationService {
                 role
         );
 
-        reservationHistoryRepository.save(history);
+        if (history != null) {
+            reservationHistoryRepository.save(history);
+        } else {
+            log.info("이미 결제 완료 처리된 예약입니다(중복 요청 무시): reservationId={}", reservationId);
+        }
 
         return ReservationCancelInfo.from(reservation);
     }
