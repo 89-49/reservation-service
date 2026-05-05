@@ -45,8 +45,11 @@ public class ReservationValidator {
             throw new ReservationException(ReservationErrorCode.INVALID_INPUT);
         }
 
-        // 권한 검증: 관리자여야 함
-        if (!"ADMIN".equalsIgnoreCase(role)) {
+        // 권한 검증: 관리자,SYSTEM만 허용함
+        String normalizedRole = role == null ? "" : role.trim();
+        boolean isAdmin = "ADMIN".equalsIgnoreCase(normalizedRole);
+        boolean isSystem = "SYSTEM".equalsIgnoreCase(normalizedRole);
+        if (!isAdmin && !isSystem) {
             throw new ReservationException(ReservationErrorCode.UNAUTHORIZED_ACCESS);
         }
 
