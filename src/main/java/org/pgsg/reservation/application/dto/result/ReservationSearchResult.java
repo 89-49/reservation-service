@@ -11,7 +11,7 @@ public record ReservationSearchResult(
         String productName,
         String sellerName,
         String buyerName,
-        ReservationStatus status, // 도메인 Enum 직접 사용
+        ReservationStatus status,
         LocalDateTime createdAt
 ) {
     public static ReservationSearchResult from(Reservation reservation) {
@@ -19,7 +19,7 @@ public record ReservationSearchResult(
                 reservation.getId(),
                 reservation.getProductInfo().getProductName(),
                 reservation.getSellerInfo().getSellerName(),
-                reservation.getBuyerInfo().getBuyerName(),
+                reservation.getBuyerInfo() != null ? reservation.getBuyerInfo().getBuyerName() : null,
                 reservation.getStatus(),
                 reservation.getCreatedAt()
         );

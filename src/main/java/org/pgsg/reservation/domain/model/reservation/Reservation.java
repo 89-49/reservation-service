@@ -60,7 +60,7 @@ public class Reservation extends BaseEntity {
     }
 
     // 예약 생성: 초기 상태 AVAILABLE
-    public static Reservation create(BuyerInfo buyer, SellerInfo seller, ProductInfo product, LocalDateTime endTime) {
+    public static Reservation create(BuyerInfo buyer, SellerInfo seller, ProductInfo product) {
         Objects.requireNonNull(seller, "seller must not be null");
         Objects.requireNonNull(product, "product must not be null");
 
@@ -69,7 +69,6 @@ public class Reservation extends BaseEntity {
         reservation.sellerInfo = seller;
         reservation.productInfo = product;
         reservation.status = ReservationStatus.AVAILABLE;
-        reservation.createdAt = LocalDateTime.now();
 
         return reservation;
     }

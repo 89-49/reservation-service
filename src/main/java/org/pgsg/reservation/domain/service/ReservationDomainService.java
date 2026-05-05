@@ -23,13 +23,13 @@ public class ReservationDomainService {
      * 예약 생성 로직
      * 각 VO들을 조합하여 예약 엔티티를 생성하고, 도메인 규칙을 검증
      */
-    public Reservation createReservation(SellerInfo seller, ProductInfo product, LocalDateTime endTime) {
+    public Reservation createReservation(SellerInfo seller, ProductInfo product ) {
 
         // 검증 로직
         reservationValidator.validate(seller, product);
 
         // 엔티티 생성
-        return Reservation.create(null, seller, product, endTime);
+        return Reservation.create(null, seller, product);
     }
 
     /**

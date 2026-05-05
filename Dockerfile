@@ -2,11 +2,17 @@
 FROM eclipse-temurin:21-jdk-alpine AS build
 WORKDIR /app
 
+# dos2unix 설치 (줄바꿈 문자 변환 도구)
+RUN apk add --no-cache dos2unix
+
 # 소스 코드 복사
 COPY . .
 
-# gradlew 실행 권한 부여 및 빌드 (plain jar 생성 방지 설정이 없으면 필터링 필요)
+# gradlew 파일의 줄바꿈 문자를 CRLF -> LF로 변환 및 권한 부여
+RUN dos2unix gradlew
 RUN chmod +x ./gradlew
+
+# 빌드 실행 (인증 정보 주입 필요 - 아래 설명 참고)
 RUN ./gradlew clean bootJar -x test
 
 # 실행 단계

@@ -1,6 +1,5 @@
 package org.pgsg.reservation.presentation.dto.response;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -14,7 +13,6 @@ import java.util.UUID;
 @Getter
 @Builder
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-@JsonInclude(JsonInclude.Include.NON_NULL)
 public class ReservationResponse {
 
     private UUID reservationId;
@@ -35,7 +33,6 @@ public class ReservationResponse {
                 .status(result.getStatus())
                 .productName(result.getProductName())
                 .sellerName(result.getSellerName())
-                .buyerName(result.getBuyerName())
                 .build();
     }
 
@@ -48,7 +45,7 @@ public class ReservationResponse {
                 .status(result.status().name())
                 .productName(result.productName())
                 .sellerName(result.sellerName())
-                .buyerName(result.buyerName())
+                .buyerName(result.buyerName() != null ? result.buyerName() : "NULL")
                 .createdAt(result.createdAt())
                 .build();
     }

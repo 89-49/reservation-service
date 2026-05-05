@@ -22,12 +22,11 @@ configurations {
 
 repositories {
     mavenCentral()
-    maven { url 'https://repo.spring.io/milestone' }
     maven {
         url = uri("https://maven.pkg.github.com/89-49/common")
         credentials {
-            username = findProperty('gpr.user') ?: System.getenv('GPR_USER')
-            password = findProperty('gpr.token') ?: System.getenv('GPR_TOKEN')
+            username = project.findProperty("gpr.user") ?: System.getenv("GPR_USER")
+            password = project.findProperty("gpr.key") ?: System.getenv("GPR_TOKEN")
         }
     }
 }

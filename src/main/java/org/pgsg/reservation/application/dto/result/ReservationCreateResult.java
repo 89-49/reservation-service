@@ -14,16 +14,17 @@ public class ReservationCreateResult {
     private String status;
     private String productName;
     private String sellerName;
-    private String buyerName;
     private LocalDateTime createdAt;
 
+    /**
+     * 예약 생성 엔티티로부터 Result DTO 변환
+     */
     public static ReservationCreateResult from(Reservation reservation) {
         return ReservationCreateResult.builder()
                 .reservationId(reservation.getId())
                 .status(reservation.getStatus().name())
                 .productName(reservation.getProductInfo().getProductName())
                 .sellerName(reservation.getSellerInfo().getSellerName())
-                .buyerName(reservation.getBuyerInfo() != null ? reservation.getBuyerInfo().getBuyerName() : null)
                 .createdAt(reservation.getCreatedAt())
                 .build();
     }

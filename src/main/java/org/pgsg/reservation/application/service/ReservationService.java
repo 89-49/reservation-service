@@ -57,8 +57,7 @@ public class ReservationService {
 
             Reservation reservation = reservationDomainService.createReservation(
                     seller,
-                    product,
-                    command.getEndTime()
+                    product
             );
 
             Reservation saved;

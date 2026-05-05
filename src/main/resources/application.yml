@@ -1,7 +1,13 @@
 server:
   port: ${SERVER_PORT:8085}
+  error:
+    include-message: always
+    include-stacktrace: always
 
 spring:
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
   application:
     name: reservation-service
 
@@ -93,6 +99,5 @@ topics:
 
 logging:
   level:
-    org.hibernate.SQL: DEBUG
-    org.hibernate.orm.jdbc.bind: TRACE
-    org.pgsg.common.domain.OutboxRepository: OFF
+    org.springframework.web: DEBUG
+    org.hibernate.type.descriptor.sql: TRACE
