@@ -5,23 +5,22 @@ services:
     container_name: reservation-service
     build:
       context: .
-      dockerfile: Dockerfile
       args:
         - GPR_USER=${GPR_USER}
         - GPR_TOKEN=${GPR_TOKEN}
     environment:
-      - "SERVER_PORT=${SERVER_PORT:-8085}"
-      - "SPRING_PROFILES_ACTIVE=dev"
-      - "DB_URL=jdbc:postgresql://reservation-db:5432/${DB_NAME:-reservation_db}"
+      - "SERVER_PORT=${SERVER_PORT}"
+      - "DB_URL=jdbc:postgresql://reservation-db:5432/${DB_NAME}"
       - "REDIS_HOST=reservation-redis"
       - "EUREKA_SERVER=http://host.docker.internal:8761/eureka/"
       - "KAFKA_SSL_PATH=/app/ssl/kafka.server.truststore.jks"
-    ports:
-      - "${SERVER_PORT:-8085}:${SERVER_PORT:-8085}"
     env_file:
       - .env
     volumes:
+      # 로컬의 resources/ssl 폴더를 컨테이너의 /app/ssl 폴더로 연결
       - ./src/main/resources/ssl:/app/ssl:ro
+    ports:
+      - "${SERVER_PORT}:${SERVER_PORT}"
     depends_on:
       db:
         condition: service_healthy
@@ -69,9 +68,3 @@ networks:
 
 volumes:
   postgres-reservation-data:
-
-secrets:
-  GPR_USER:
-    environment: GPR_USER
-  GPR_TOKEN:
-    environment: GPR_TOKEN

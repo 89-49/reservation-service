@@ -1,62 +1,38 @@
 server:
   port: ${SERVER_PORT:8085}
-  error:
-    include-message: always
-    include-stacktrace: always
 
 spring:
-  jackson:
-    serialization:
-      write-dates-as-timestamps: false
+  main:
+    allow-bean-definition-overriding: true
   application:
     name: reservation-service
-
   profiles:
-    active: dev,kafka
-    include: error, reservation-error
+    active: ${SPRING_PROFILES_ACTIVE:dev,kafka}
 
-  # [필수 1] 설정 로드 순서
-  # .env 파일을 먼저 읽고, 그 다음 외부 Config Server에 접속합니다.
   config:
     import:
       - "optional:file:.env[.properties]"
       - "optional:configserver:${CONFIG_SERVER:http://34.50.50.170:13100}"
 
-  # [필수 2] 로컬 우선순위 설정
-  cloud:
-    config:
-      enabled: false
-      allow-override: true
-      override-none: false
-
-  # [필수 3] 빈 중복 정의 허용
-  main:
-    allow-bean-definition-overriding: true
-
-  # 데이터베이스 설정 (PostgreSQL)
   datasource:
-    driver-class-name: org.postgresql.Driver
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/reservation_db}
-    username: ${DB_USERNAME:postgres} # 추가
-    password: ${DB_PASSWORD:postgres}
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
 
-  # [필수 4] Kafka 설정
   kafka:
-    bootstrap-servers: ${KAFKA_HOST}
+    bootstrap-servers: ${KAFKA_HOST:34.64.35.152:9092,34.22.94.155:9092,34.50.28.59:9092}
+    ssl:
+      # Docker 환경(file:/app/...)과 로컬 환경(C:/...)을 환경 변수 하나로 제어합니다.
+      trust-store-location: ${KAFKA_SSL_PATH:file:/app/ssl/kafka.server.truststore.jks}
+      trust-store-password: _aA123456
     properties:
       security.protocol: SSL
-      ssl.truststore.location: ${KAFKA_SSL_PATH:/app/ssl/kafka.server.truststore.jks}
-      ssl.truststore.password: _aA123456
       ssl.endpoint.identification.algorithm: ""
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.apache.kafka.common.serialization.StringSerializer
 
-  # [필수 5] Redis 설정
   data:
     redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
 
   jpa:
     hibernate:
@@ -74,7 +50,6 @@ management:
       exposure:
         include: health, info, refresh
 
-# [필수 6] 보안 및 유레카 설정
 jwt:
   secret: ${JWT_SECRET}
 
@@ -82,22 +57,15 @@ eureka:
   instance:
     instance-id: ${spring.application.name}:${random.value}
     prefer-ip-address: true
-    hostname: ${spring.application.name}
   client:
-    enabled: false
+    enabled: ${EUREKA_ENABLED:true} # 도커/로컬 상황에 따라 토글 가능
     register-with-eureka: true
     fetch-registry: true
     service-url:
       defaultZone: ${EUREKA_SERVER:http://localhost:8761/eureka/}
-    registry-fetch-interval-seconds: 30
 
 topics:
   reservation:
     completed: prod-reservation-completed
   product:
     created: prod-product-created
-
-logging:
-  level:
-    org.springframework.web: DEBUG
-    org.hibernate.type.descriptor.sql: TRACE
