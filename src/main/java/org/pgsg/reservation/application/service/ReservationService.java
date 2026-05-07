@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.pgsg.reservation.application.dto.command.ReservationCancelCommand;
 import org.pgsg.reservation.application.dto.command.ReservationCreateCommand;
+import org.pgsg.reservation.application.dto.result.ReservationDetailResult;
 import org.pgsg.reservation.infrastructure.listener.dto.ReservationEventPublisher;
 import org.pgsg.reservation.application.dto.info.ReservationCancelInfo;
 import org.pgsg.reservation.application.dto.query.ReservationSearchQuery;
@@ -20,7 +21,6 @@ import org.pgsg.reservation.domain.service.ReservationDomainService;
 import org.pgsg.reservation.domain.repository.ReservationRepository;
 import org.pgsg.reservation.presentation.dto.request.ReservationAdminCancelRequest;
 import org.pgsg.reservation.presentation.dto.response.ReservationCandidateResponse;
-import org.pgsg.reservation.presentation.dto.response.ReservationDetailResponse;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -106,7 +106,7 @@ public class ReservationService {
 
     // 예약 상세 조회
     @Transactional(readOnly = true)
-    public ReservationDetailResponse getReservationDetail(UUID reservationId, UUID userId, String role) {
+    public ReservationDetailResult getReservationDetail(UUID reservationId, UUID userId, String role) {
         // 엔티티 조회
         Reservation reservation = reservationRepository.findById(reservationId)
                 .orElseThrow(() -> new RuntimeException("해당 예약을 찾을 수 없습니다. ID: " + reservationId));
@@ -114,7 +114,7 @@ public class ReservationService {
         // 도메인 서비스를 통한 권한 검증
         reservationDomainService.validateDetailAccess(reservation, userId, role);
 
-        return ReservationDetailResponse.from(reservation);
+        return ReservationDetailResult.from(reservation);
     }
 
     // 예약 신청
