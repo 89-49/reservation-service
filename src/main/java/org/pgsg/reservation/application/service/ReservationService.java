@@ -234,10 +234,9 @@ public class ReservationService {
 
     // 거래 완료
     @Transactional
-    public ReservationStateInfo confirmTrade(UUID reservationId) {
+    public ReservationStateInfo confirmTrade(ReservationConfirmCommand command) {
 
-        Reservation reservation = reservationRepository.findById(reservationId)
-                .orElseThrow(() -> new ReservationException(ReservationErrorCode.RESERVATION_NOT_FOUND));
+        Reservation reservation = findById(command.reservationId());
 
         reservation.close();
 

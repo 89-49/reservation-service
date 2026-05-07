@@ -200,7 +200,13 @@ public class ReservationController {
             @RequestHeader("X-User-Id") UUID userId,
             @RequestHeader("X-User-Role") String role
     ) {
-        ReservationStateInfo info = reservationService.confirmTrade(reservationId);
+        ReservationConfirmCommand command = ReservationConfirmCommand.of(
+                reservationId,
+                userId,
+                role
+        );
+
+        ReservationStateInfo info = reservationService.confirmTrade(command);
 
         return ReservationStateResponse.of(info, "거래가 성공적으로 완료되어 확정 처리되었습니다.");
     }
