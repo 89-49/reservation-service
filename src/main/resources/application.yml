@@ -8,6 +8,9 @@ spring:
     name: reservation-service
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev,kafka}
+    include:
+      - error
+      - reservation-error
 
   config:
     import:

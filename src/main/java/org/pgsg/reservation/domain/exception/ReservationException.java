@@ -1,14 +1,20 @@
 package org.pgsg.reservation.domain.exception;
 
-import lombok.Getter;
+import org.pgsg.common.exception.CustomException;
+import org.pgsg.common.exception.ErrorCode;
 
-@Getter
-public class ReservationException extends RuntimeException {
+public class ReservationException extends CustomException {
 
-    private final ReservationErrorCode errorCode;
+    public ReservationException(ErrorCode errorCode) {
+        super(errorCode, null);
+    }
 
-    public ReservationException(ReservationErrorCode errorCode) {
-        super(errorCode.getMessage());
-        this.errorCode = errorCode;
+    public ReservationException(ErrorCode errorCode, String field) {
+        super(errorCode, field);
+    }
+
+    public ReservationException(ErrorCode errorCode, Throwable cause) {
+        super(errorCode, null);
+        this.initCause(cause);
     }
 }

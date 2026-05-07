@@ -1,0 +1,49 @@
+error:
+  configs:
+    # 예약 정보 유효성
+    "[reservation.validation.invalid-input]":
+      code: "R001"
+      message: "입력값이 누락되었습니다."
+      status: 400
+
+    "[reservation.validation.invalid-status]":
+      code: "R002"
+      message: "잘못된 예약 상태입니다."
+      status: 400
+
+    "[reservation.validation.invalid-select-status]":
+      code: "R003"
+      message: "잘못된 선정 상태입니다."
+      status: 400
+
+    # 비즈니스 예외
+    "[reservation.exception.cannot-change-status]":
+      code: "R004"
+      message: "현재 상태에서는 변경할 수 없는 요청입니다."
+      status: 400
+
+    "[reservation.exception.access-denied]":
+      code: "R005"
+      message: "해당 요청에 대한 접근 권한이 없습니다."
+      status: 403
+
+    "[reservation.exception.not-found.reservation]":
+      code: "R006"
+      message: "해당 예약을 찾을 수 없습니다."
+      status: 404
+
+    # 중복 및 충돌
+    "[reservation.exception.conflict.duplicate-reservation]":
+      code: "R007"
+      message: "이미 해당 상품에 대한 예약 진행 내역이 존재합니다."
+      status: 409
+
+    "[reservation.exception.conflict.already-applied]":
+      code: "R008"
+      message: "이미 해당 예약에 신청한 후보자입니다."
+      status: 409
+
+    "[reservation.exception.conflict.already-exists]":
+      code: "R009"
+      message: "해당 상품으로 이미 생성된 예약 데이터가 존재합니다."
+      status: 409
