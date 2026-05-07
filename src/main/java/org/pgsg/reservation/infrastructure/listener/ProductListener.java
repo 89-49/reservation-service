@@ -34,7 +34,10 @@ public class ProductListener {
             log.info("타임딜 상품 생성 이벤트 수신 - Product ID: {}, Name: {}",
                     event.productId(), event.name());
 
-            ReservationCreateCommand command = ReservationCreateCommand.from(event);
+            ReservationCreateCommand command = new ReservationCreateCommand(
+                    event.productId(), event.sellerId(), event.sellerName(),
+                    event.name(), event.price(), event.endTime()
+            );
 
             reservationService.createReservation(command);
         }catch (ReservationException e) {

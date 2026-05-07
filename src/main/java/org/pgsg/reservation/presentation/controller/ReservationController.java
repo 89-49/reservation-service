@@ -33,7 +33,10 @@ public class ReservationController {
     public ReservationResponse createReservation(
             @Valid @RequestBody ReservationCreateRequest request
     ) {
-        ReservationCreateCommand command = ReservationCreateCommand.of(request);
+        ReservationCreateCommand command = new ReservationCreateCommand(
+                request.getProductId(), request.getSellerId(), request.getSellerNickname(),
+                request.getProductName(), request.getPrice(), request.getEndTime()
+        );
 
         ReservationCreateResult result = reservationService.createReservation(command);
 
