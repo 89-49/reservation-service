@@ -2,11 +2,11 @@ package org.pgsg.reservation.infrastructure.scheduler;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.pgsg.reservation.application.dto.command.ReservationExpireCommand;
 import org.pgsg.reservation.application.service.ReservationService;
 import org.pgsg.reservation.domain.model.reservation.Reservation;
 import org.pgsg.reservation.domain.model.reservation.ReservationStatus;
 import org.pgsg.reservation.domain.repository.ReservationRepository;
-import org.pgsg.reservation.presentation.dto.request.ReservationAdminCancelRequest;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -22,7 +22,7 @@ public class ReservationExpiryScheduler {
     private final ReservationService reservationService;
     private final ReservationRepository reservationRepository;
 
-    // 시스템 자동 처리를 위한 가상의 관리자 ID (추후 시스템 관리자 용 id 따로 추가)
+    // 시스템 자동 처리를 위한 가상의 관리자 정보
     private static final UUID SYSTEM_ID = UUID.fromString("00000000-0000-0000-0000-000000000000");
     private static final String SYSTEM_ROLE = "ADMIN";
 
@@ -34,6 +34,7 @@ public class ReservationExpiryScheduler {
         LocalDateTime threshold = LocalDateTime.now().minusMinutes(60);
         List<ReservationStatus> targetStatuses = List.of(ReservationStatus.PENDING, ReservationStatus.PAID);
 
+        // 1시간 동안 상태 변화가 없는 예약들 조회
         List<Reservation> expiredReservations = reservationRepository.findAllByStatusInAndModifiedAtBefore(
                 targetStatuses,
                 threshold
@@ -45,15 +46,10 @@ public class ReservationExpiryScheduler {
 
         for (Reservation reservation : expiredReservations) {
             try {
-                // 현재 예약 상태에 맞는 요청 객체를 생성
-                ReservationAdminCancelRequest request = createCancelRequest(reservation);
+                ReservationExpireCommand command = createExpireCommand(reservation);
+                reservationService.expireByAdmin(command);
 
-                reservationService.expireByAdmin(
-                        reservation.getId(),
-                        request,
-                        SYSTEM_ID,
-                        SYSTEM_ROLE
-                );
+                log.info("예약 자동 만료 완료 (ID: {}, 상태: {})", reservation.getId(), reservation.getStatus());
             } catch (Exception e) {
                 log.error("예약 자동 만료 처리 중 오류 발생 (ID: {}): {}", reservation.getId(), e.getMessage());
             }
@@ -63,23 +59,26 @@ public class ReservationExpiryScheduler {
     /**
      * 예약 상태에 따른 적절한 취소 요청 객체를 생성하는 메서드
      */
-    private ReservationAdminCancelRequest createCancelRequest(Reservation reservation) {
+    private ReservationExpireCommand createExpireCommand(Reservation reservation) {
+        ReservationStatus targetStatus;
+        String reason;
 
-        //
         if (reservation.getStatus() == ReservationStatus.PENDING) {
-            return new ReservationAdminCancelRequest(
-                    ReservationStatus.CANCELLED_BY_BUYER,
-                    "결제 제한 시간(1시간) 초과로 인한 자동 취소"
-            );
+            targetStatus = ReservationStatus.CANCELLED_BY_BUYER;
+            reason = "결제 제한 시간(1시간) 초과로 인한 자동 취소";
+        } else if (reservation.getStatus() == ReservationStatus.PAID) {
+            targetStatus = ReservationStatus.CANCELLED_BY_SELLER;
+            reason = "채팅 수락 제한 시간(1시간) 초과로 인한 자동 취소";
+        } else {
+            throw new IllegalStateException("자동 만료 대상이 아닌 상태입니다: " + reservation.getStatus());
         }
 
-        // PAID 상태일 때
-        if (reservation.getStatus() == ReservationStatus.PAID) {
-            return new ReservationAdminCancelRequest(
-                    ReservationStatus.CANCELLED_BY_SELLER,
-                    "채팅 수락 제한 시간(1시간) 초과로 인한 자동 취소"
-            );
-        }
-        throw new IllegalStateException("자동 만료 대상이 아닌 상태입니다: " + reservation.getStatus());
+        return new ReservationExpireCommand(
+                reservation.getId(),
+                SYSTEM_ID,
+                SYSTEM_ROLE,
+                targetStatus,
+                reason
+        );
     }
 }

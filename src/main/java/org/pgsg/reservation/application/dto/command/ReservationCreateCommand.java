@@ -1,19 +1,38 @@
 package org.pgsg.reservation.application.dto.command;
 
-import lombok.Builder;
-import lombok.Getter;
+import org.pgsg.reservation.infrastructure.listener.dto.TimeDealProductEvent;
+import org.pgsg.reservation.presentation.dto.request.ReservationCreateRequest;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-@Getter
-@Builder
-public class ReservationCreateCommand {
-    private UUID productId;
+public record ReservationCreateCommand (
+        UUID productId,
+        UUID sellerId,
+        String sellerName,
+        String productName,
+        Integer price,
+        LocalDateTime endTime
+){
+        public static ReservationCreateCommand of(ReservationCreateRequest request) {
+            return new ReservationCreateCommand(
+                    request.getProductId(),
+                    request.getSellerId(),
+                    request.getSellerNickname(), // 명칭 매핑 (Nickname -> Name)
+                    request.getProductName(),
+                    request.getPrice(),
+                    request.getEndTime()
+            );
+        }
 
-    private UUID sellerId;      // 판매자 ID
-    private String sellerName;  // 판매자 이름 (또는 닉네임)
-    private String productName; // 상품명
-    private Integer price;      // 가격
-    private LocalDateTime endTime; // 종료 시간
-}
+    public static ReservationCreateCommand from(TimeDealProductEvent event) {
+        return new ReservationCreateCommand(
+                event.productId(),
+                event.sellerId(),
+                event.sellerName(),
+                event.name(),
+                event.price(),
+                event.endTime()
+        );
+    }
+    }

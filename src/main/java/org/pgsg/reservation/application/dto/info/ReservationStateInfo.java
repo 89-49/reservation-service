@@ -7,13 +7,13 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Builder
-public record ReservationCancelInfo(
+public record ReservationStateInfo(
         UUID reservationId,
         ReservationStatus status,
         LocalDateTime updatedAt
 ) {
-    public static ReservationCancelInfo from(Reservation reservation) {
-        return ReservationCancelInfo.builder()
+    public static ReservationStateInfo from(Reservation reservation) {
+        return ReservationStateInfo.builder()
                 .reservationId(reservation.getId())
                 .status(reservation.getStatus())
                 .updatedAt(reservation.getModifiedAt())

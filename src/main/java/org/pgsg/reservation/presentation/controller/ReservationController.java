@@ -2,9 +2,9 @@ package org.pgsg.reservation.presentation.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.pgsg.reservation.application.dto.command.ReservationCancelCommand;
-import org.pgsg.reservation.application.dto.command.ReservationCreateCommand;
-import org.pgsg.reservation.application.dto.info.ReservationCancelInfo;
+import org.pgsg.reservation.application.dto.command.*;
+import org.pgsg.reservation.application.dto.info.ReservationCandidateInfo;
+import org.pgsg.reservation.application.dto.info.ReservationStateInfo;
 import org.pgsg.reservation.application.dto.query.ReservationSearchQuery;
 import org.pgsg.reservation.application.dto.result.ReservationCreateResult;
 import org.pgsg.reservation.application.dto.result.ReservationDetailResult;
@@ -33,14 +33,7 @@ public class ReservationController {
     public ReservationResponse createReservation(
             @Valid @RequestBody ReservationCreateRequest request
     ) {
-        ReservationCreateCommand command = ReservationCreateCommand.builder()
-                .productId(request.getProductId())
-                .productName(request.getProductName())
-                .price(request.getPrice())
-                .endTime(request.getEndTime())
-                .sellerId(request.getSellerId())
-                .sellerName(request.getSellerNickname())
-                .build();
+        ReservationCreateCommand command = ReservationCreateCommand.of(request);
 
         ReservationCreateResult result = reservationService.createReservation(command);
 
@@ -77,25 +70,28 @@ public class ReservationController {
             @RequestHeader("X-User-Id") UUID userId,
             @RequestHeader("X-User-Role") String role
     ) {
-
         ReservationDetailResult result = reservationService.getReservationDetail(reservationId, userId, role);
 
         return ReservationDetailResponse.from(result);
     }
 
     // 예약 신청
-    @PostMapping("/{reservationId}")
+    @PatchMapping("/{reservationId}")
     public ReservationCandidateResponse applyReservation(
             @PathVariable UUID reservationId,
             @RequestHeader("X-User-Id") UUID userId,
             @RequestHeader("X-User-Nickname") String nickname
     ) {
-        return reservationService.applyReservation(reservationId, userId, nickname);
+        ReservationApplyCommand command = ReservationApplyCommand.of(reservationId, userId, nickname);
+
+        ReservationCandidateInfo info = reservationService.applyReservation(command);
+
+        return ReservationCandidateResponse.of(info, "예약 신청이 성공적으로 완료되었습니다.");
     }
 
     // 구매자 사유 취소 (구매자/관리자)
     @PatchMapping("/{reservationId}/cancel/buyer")
-    public ReservationCancelResponse cancelByBuyer(
+    public ReservationStateResponse cancelByBuyer(
             @PathVariable UUID reservationId,
             @RequestBody ReservationCancelRequest request,
             @RequestHeader("X-User-Id") UUID userId,
@@ -108,28 +104,32 @@ public class ReservationController {
                 request.reason()
         );
 
-        ReservationCancelInfo info = reservationService.cancelByBuyer(command);
+        ReservationStateInfo info = reservationService.cancelByBuyer(command);
 
-        return ReservationCancelResponse.of(info, "구매자 사유 취소가 완료되었습니다.");
+        return ReservationStateResponse.of(info, "구매자 사유 취소가 완료되었습니다.");
     }
 
     // 결제 완료
     @PatchMapping("/{reservationId}/paymentconfirm")
-    public ReservationCancelInfo confirmPayment(
+    public ReservationStateResponse confirmPayment(
             @PathVariable UUID reservationId,
             @RequestHeader("X-User-Id") UUID userId,
             @RequestHeader("X-User-Role") String role
     ) {
-        return reservationService.confirmPayment(
+        ReservationConfirmCommand command = ReservationConfirmCommand.of(
                 reservationId,
                 userId,
                 role
         );
+
+        ReservationStateInfo info = reservationService.confirmPayment(command);
+
+        return ReservationStateResponse.of(info, "구매자의 결제 완료에 따라 예약 완료 처리가 완료되었습니다.");
     }
 
     // 판매자 사유로 인한 취소(판매자,관리자)
     @PatchMapping("/{reservationId}/cancel/seller")
-    public ReservationCancelResponse cancelBySeller(
+    public ReservationStateResponse cancelBySeller(
             @PathVariable UUID reservationId,
             @RequestBody ReservationCancelRequest request,
             @RequestHeader("X-User-Id") UUID userId,
@@ -142,60 +142,63 @@ public class ReservationController {
                 request.reason()
         );
 
-        ReservationCancelInfo info = reservationService.cancelBySeller(command);
+        ReservationStateInfo info = reservationService.cancelBySeller(command);
 
-        return ReservationCancelResponse.of(info, "판매자 사유 취소가 완료되었습니다.");
+        return ReservationStateResponse.of(info, "판매자 사유 취소가 완료되었습니다.");
     }
 
     // 예약 만료(관리자만 조정 가능)
     @PatchMapping("/{reservationId}/expire")
-    public ReservationCancelResponse expireByAdmin(
+    public ReservationStateResponse expireByAdmin(
             @PathVariable UUID reservationId,
             @RequestBody ReservationAdminCancelRequest request,
             @RequestHeader("X-User-Id") UUID userId,
             @RequestHeader("X-User-Role") String role
     ) {
-        ReservationCancelInfo info = reservationService.expireByAdmin(
+        ReservationExpireCommand command = ReservationExpireCommand.of(
                 reservationId,
-                request,
                 userId,
-                role
+                role,
+                request
         );
+
+        ReservationStateInfo info = reservationService.expireByAdmin(command);
 
         String message = (request.targetStatus() == ReservationStatus.CANCELLED_BY_BUYER)
                 ? "관리자 권한으로 구매자 사유 취소(승계) 처리가 완료되었습니다."
                 : "관리자 권한으로 판매자 사유 취소(종료) 처리가 완료되었습니다.";
 
-        return ReservationCancelResponse.of(info, message);
+        return ReservationStateResponse.of(info, message);
     }
 
     // 예약 완료
     @PatchMapping("/{reservationId}/complete")
-    public ReservationCancelResponse completeReservation(
+    public ReservationStateResponse completeReservation(
             @PathVariable UUID reservationId,
             @RequestHeader("X-User-Id") UUID userId,
             @RequestHeader("X-User-Role") String role
     ) {
-        ReservationCancelInfo info = reservationService.completeReservation(
-                reservationId,
-                userId,
-                role
-        );
 
-        return ReservationCancelResponse.of(info, "판매자 채팅 수락에 따라 예약 완료 처리가 완료되었습니다.");
+         ReservationConfirmCommand command = ReservationConfirmCommand.of(
+                 reservationId,
+                 userId,
+                 role
+         );
+
+        ReservationStateInfo info = reservationService.completeReservation(command);
+
+        return ReservationStateResponse.of(info, "판매자 채팅 수락에 따라 예약 완료 처리가 완료되었습니다.");
     }
 
     // 거래 완료
     @PatchMapping("/{reservationId}/tradeconfirm")
-    public ReservationCancelResponse confirmTrade(
+    public ReservationStateResponse confirmTrade(
             @PathVariable UUID reservationId,
             @RequestHeader("X-User-Id") UUID userId,
             @RequestHeader("X-User-Role") String role
     ) {
-        ReservationCancelInfo info = reservationService.confirmTrade(
-                reservationId
-        );
+        ReservationStateInfo info = reservationService.confirmTrade(reservationId);
 
-        return ReservationCancelResponse.of(info, "거래가 성공적으로 완료되어 확정 처리되었습니다.");
+        return ReservationStateResponse.of(info, "거래가 성공적으로 완료되어 확정 처리되었습니다.");
     }
 }
