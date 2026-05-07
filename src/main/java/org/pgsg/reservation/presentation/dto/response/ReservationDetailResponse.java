@@ -1,6 +1,6 @@
 package org.pgsg.reservation.presentation.dto.response;
 
-import org.pgsg.reservation.domain.model.reservation.Reservation;
+import org.pgsg.reservation.application.dto.result.ReservationDetailResult;
 import org.pgsg.reservation.domain.model.reservation.ReservationStatus;
 
 import java.time.LocalDateTime;
@@ -31,25 +31,15 @@ public record ReservationDetailResponse(
             String buyerName
     ) {}
 
-    public static ReservationDetailResponse from(Reservation reservation) {
+    public static ReservationDetailResponse from(ReservationDetailResult result) {
         return new ReservationDetailResponse(
-                reservation.getId(),
-                reservation.getStatus(),
-                new ProductDetailInfo(
-                        reservation.getProductInfo().getProductId(),
-                        reservation.getProductInfo().getProductName(),
-                        reservation.getProductInfo().getProductPrice()
-                ),
-                new SellerDetailInfo(
-                        reservation.getSellerInfo().getSellerId(),
-                        reservation.getSellerInfo().getSellerName()
-                ),
-                new BuyerDetailInfo(
-                        reservation.getBuyerInfo().getBuyerId(),
-                        reservation.getBuyerInfo().getBuyerName()
-                ),
-                reservation.getCreatedAt(),
-                reservation.getModifiedAt()
+                result.reservationId(),
+                result.status(),
+                new ProductDetailInfo(result.product().productId(), result.product().productName(), result.product().price()),
+                new SellerDetailInfo(result.seller().sellerId(), result.seller().sellerName()),
+                new BuyerDetailInfo(result.buyer().buyerId(), result.buyer().buyerName()),
+                result.createdAt(),
+                result.updatedAt()
         );
     }
 }
