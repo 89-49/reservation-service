@@ -25,4 +25,10 @@ jobs:
         uses: 'google-github-actions/setup-gcloud@v2'
 
       - name: 'Test Connection'
-        run: 'gcloud compute instances list'
+        run: |
+            # 1. 인증된 계정 확인
+            gcloud auth list
+            # 2. 현재 설정된 프로젝트 확인
+            gcloud config set project pgsg-project
+            # 3. 상세 에러 로그와 함께 리스트 조회
+            gcloud compute instances list --verbosity=debug
