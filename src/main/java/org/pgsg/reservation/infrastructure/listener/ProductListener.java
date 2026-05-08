@@ -34,14 +34,10 @@ public class ProductListener {
             log.info("타임딜 상품 생성 이벤트 수신 - Product ID: {}, Name: {}",
                     event.productId(), event.name());
 
-            ReservationCreateCommand command = ReservationCreateCommand.builder()
-                    .productId(event.productId())
-                    .productName(event.name())
-                    .price(event.price())
-                    .endTime(event.endTime())
-                    .sellerId(event.sellerId())
-                    .sellerName(event.sellerName())
-                    .build();
+            ReservationCreateCommand command = new ReservationCreateCommand(
+                    event.productId(), event.sellerId(), event.sellerName(),
+                    event.name(), event.price(), event.endTime()
+            );
 
             reservationService.createReservation(command);
         }catch (ReservationException e) {

@@ -2,11 +2,10 @@ package org.pgsg.reservation.application.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.pgsg.reservation.application.dto.command.ReservationCancelCommand;
-import org.pgsg.reservation.application.dto.command.ReservationCreateCommand;
+import org.pgsg.reservation.application.dto.command.*;
 import org.pgsg.reservation.application.dto.result.ReservationDetailResult;
 import org.pgsg.reservation.infrastructure.listener.dto.ReservationEventPublisher;
-import org.pgsg.reservation.application.dto.info.ReservationCancelInfo;
+import org.pgsg.reservation.application.dto.info.ReservationStateInfo;
 import org.pgsg.reservation.application.dto.query.ReservationSearchQuery;
 import org.pgsg.reservation.application.dto.result.ReservationCreateResult;
 import org.pgsg.reservation.application.dto.result.ReservationSearchResult;
@@ -19,8 +18,7 @@ import org.pgsg.reservation.domain.model.reservationhistory.ReservationHistory;
 import org.pgsg.reservation.domain.repository.ReservationHistoryRepository;
 import org.pgsg.reservation.domain.service.ReservationDomainService;
 import org.pgsg.reservation.domain.repository.ReservationRepository;
-import org.pgsg.reservation.presentation.dto.request.ReservationAdminCancelRequest;
-import org.pgsg.reservation.presentation.dto.response.ReservationCandidateResponse;
+import org.pgsg.reservation.application.dto.info.ReservationCandidateInfo;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -43,16 +41,16 @@ public class ReservationService {
     @Transactional
     public ReservationCreateResult createReservation(ReservationCreateCommand command) {
         try {
-            if (reservationRepository.existsByProductId(command.getProductId())) {
+            if (reservationRepository.existsByProductId(command.productId())) {
                 throw new ReservationException(ReservationErrorCode.ALREADY_EXISTS);
             }
 
-            SellerInfo seller = SellerInfo.of(command.getSellerId(), "test");
+            SellerInfo seller = SellerInfo.of(command.sellerId(), "test");
             ProductInfo product = ProductInfo.of(
-                    command.getProductId(),
-                    command.getPrice(),
-                    command.getProductName(),
-                    command.getEndTime()
+                    command.productId(),
+                    command.price(),
+                    command.productName(),
+                    command.endTime()
             );
 
             Reservation reservation = reservationDomainService.createReservation(
@@ -119,15 +117,15 @@ public class ReservationService {
 
     // 예약 신청
     @Transactional
-    public ReservationCandidateResponse applyReservation(UUID reservationId, UUID userId, String nickname) {
+    public ReservationCandidateInfo applyReservation(ReservationApplyCommand command) {
         Reservation savedReservation;
 
         // 예약 엔티티 조회
-        Reservation reservation = reservationRepository.findById(reservationId)
+        Reservation reservation = reservationRepository.findById(command.reservationId())
                 .orElseThrow(() -> new ReservationException(ReservationErrorCode.RESERVATION_NOT_FOUND));
 
         // 도메인 서비스를 통한 신청 로직 (후보자 생성 및 추가)
-        ReservationCandidate candidate = reservationDomainService.addCandidate(reservation, userId, nickname);
+        ReservationCandidate candidate = reservationDomainService.addCandidate(reservation, command.userId(), command.nickname());
 
         // 변경사항 저장과 예외 감시
         try {
@@ -141,16 +139,16 @@ public class ReservationService {
 
         // 방금 저장된 예약에서 추하한 후보자 찾기
         ReservationCandidate savedCandidate = savedReservation.getCandidates().stream()
-                .filter(c -> c.getCandidateId().equals(userId))
+                .filter(c -> c.getCandidateId().equals(command.userId()))
                 .findFirst()
                 .orElse(candidate);
 
-        return ReservationCandidateResponse.from(savedCandidate);
+        return ReservationCandidateInfo.from(savedCandidate);
     }
 
     // 구매자 취소 처리 로직
     @Transactional
-    public ReservationCancelInfo cancelByBuyer(ReservationCancelCommand command) {
+    public ReservationStateInfo cancelByBuyer(ReservationCancelCommand command) {
         Reservation reservation = findById(command.reservationId());
 
         ReservationHistory history = reservationDomainService.cancelByBuyer(
@@ -162,32 +160,32 @@ public class ReservationService {
 
         reservationHistoryRepository.save(history);
 
-        return ReservationCancelInfo.from(reservation);
+        return ReservationStateInfo.from(reservation);
     }
 
     // 추후 결제 시스템 연동시 트리거 발동
     @Transactional
-    public ReservationCancelInfo confirmPayment(UUID reservationId, UUID userId, String role) {
-        Reservation reservation = findById(reservationId);
+    public ReservationStateInfo confirmPayment(ReservationConfirmCommand command) {
+        Reservation reservation = findById(command.reservationId());
 
         ReservationHistory history = reservationDomainService.confirmPayment(
                 reservation,
-                userId,
-                role
+                command.userId(),
+                command.role()
         );
 
         if (history != null) {
             reservationHistoryRepository.save(history);
         } else {
-            log.info("이미 결제 완료 처리된 예약입니다(중복 요청 무시): reservationId={}", reservationId);
+            log.info("이미 결제 완료 처리된 예약입니다(중복 요청 무시): reservationId={}", reservation.getId());
         }
 
-        return ReservationCancelInfo.from(reservation);
+        return ReservationStateInfo.from(reservation);
     }
 
     // 판매자 취소 로직
     @Transactional
-    public ReservationCancelInfo cancelBySeller(ReservationCancelCommand command) {
+    public ReservationStateInfo cancelBySeller(ReservationCancelCommand command) {
         Reservation reservation = findById(command.reservationId());
 
         ReservationHistory history = reservationDomainService.cancelBySeller(
@@ -199,57 +197,50 @@ public class ReservationService {
 
         reservationHistoryRepository.save(history);
 
-        return ReservationCancelInfo.from(reservation);
+        return ReservationStateInfo.from(reservation);
     }
 
     // 예약 만료
     @Transactional
-    public ReservationCancelInfo expireByAdmin(
-            UUID reservationId,
-            ReservationAdminCancelRequest request,
-            UUID adminId,
-            String role
-    ) {
-        Reservation reservation = findById(reservationId);
+    public ReservationStateInfo expireByAdmin(ReservationExpireCommand command) {
+        Reservation reservation = findById(command.reservationId());
 
         ReservationHistory history = reservationDomainService.expireByAdmin(
                 reservation,
-                adminId,
-                role,
-                request.targetStatus(),
-                request.reason()
+                command.userId(),
+                command.role(),
+                command.targetStatus(),
+                command.reason()
         );
 
         reservationHistoryRepository.save(history);
 
-        return ReservationCancelInfo.from(reservation);
+        return ReservationStateInfo.from(reservation);
     }
 
     // 예약 완료
     @Transactional
-    public ReservationCancelInfo completeReservation(UUID reservationId, UUID userId, String role) {
+    public ReservationStateInfo completeReservation(ReservationConfirmCommand command) {
         // 예약 엔티티 조회
-        Reservation reservation = findById(reservationId);
+        Reservation reservation = findById(command.reservationId());
 
-        ReservationHistory history = reservationDomainService.completeReservation(reservation,userId,role);
+        ReservationHistory history = reservationDomainService.completeReservation(reservation,command.userId(),command.role());
 
         reservationHistoryRepository.save(history);
-
         reservationEventPublisher.publishReservationCompleted(reservation);
 
-        return ReservationCancelInfo.from(reservation);
+        return ReservationStateInfo.from(reservation);
     }
 
     // 거래 완료
     @Transactional
-    public ReservationCancelInfo confirmTrade(UUID reservationId) {
+    public ReservationStateInfo confirmTrade(ReservationConfirmCommand command) {
 
-        Reservation reservation = reservationRepository.findById(reservationId)
-                .orElseThrow(() -> new ReservationException(ReservationErrorCode.RESERVATION_NOT_FOUND));
+        Reservation reservation = findById(command.reservationId());
 
         reservation.close();
 
-        return ReservationCancelInfo.from(reservation);
+        return ReservationStateInfo.from(reservation);
     }
 
     /**
