@@ -47,7 +47,7 @@ public class ReservationController {
     @GetMapping
     public ReservationPageResponse<ReservationResponse> getReservations(
             @RequestHeader("X-User-Id") UUID userId,
-            @RequestHeader("X-User-Role") String role,
+            @RequestHeader("X-User-Roles") String role,
             @ModelAttribute ReservationSearchRequest request,
             @PageableDefault(size = 10) Pageable pageable
     ) {
@@ -71,7 +71,7 @@ public class ReservationController {
     public ReservationDetailResponse getReservationDetail(
             @PathVariable UUID reservationId,
             @RequestHeader("X-User-Id") UUID userId,
-            @RequestHeader("X-User-Role") String role
+            @RequestHeader("X-User-Roles") String role
     ) {
         ReservationDetailResult result = reservationService.getReservationDetail(reservationId, userId, role);
 
@@ -98,7 +98,7 @@ public class ReservationController {
             @PathVariable UUID reservationId,
             @RequestBody ReservationCancelRequest request,
             @RequestHeader("X-User-Id") UUID userId,
-            @RequestHeader("X-User-Role") String role
+            @RequestHeader("X-User-Roles") String role
     ) {
         ReservationCancelCommand command = ReservationCancelCommand.of(
                 reservationId,
@@ -117,7 +117,7 @@ public class ReservationController {
     public ReservationStateResponse confirmPayment(
             @PathVariable UUID reservationId,
             @RequestHeader("X-User-Id") UUID userId,
-            @RequestHeader("X-User-Role") String role
+            @RequestHeader("X-User-Roles") String role
     ) {
         ReservationConfirmCommand command = ReservationConfirmCommand.of(
                 reservationId,
@@ -136,7 +136,7 @@ public class ReservationController {
             @PathVariable UUID reservationId,
             @RequestBody ReservationCancelRequest request,
             @RequestHeader("X-User-Id") UUID userId,
-            @RequestHeader("X-User-Role") String role
+            @RequestHeader("X-User-Roles") String role
     ) {
         ReservationCancelCommand command = ReservationCancelCommand.of(
                 reservationId,
@@ -156,7 +156,7 @@ public class ReservationController {
             @PathVariable UUID reservationId,
             @RequestBody ReservationAdminCancelRequest request,
             @RequestHeader("X-User-Id") UUID userId,
-            @RequestHeader("X-User-Role") String role
+            @RequestHeader("X-User-Roles") String role
     ) {
         ReservationExpireCommand command = ReservationExpireCommand.of(
                 reservationId,
@@ -179,7 +179,7 @@ public class ReservationController {
     public ReservationStateResponse completeReservation(
             @PathVariable UUID reservationId,
             @RequestHeader("X-User-Id") UUID userId,
-            @RequestHeader("X-User-Role") String role
+            @RequestHeader("X-User-Roles") String role
     ) {
 
          ReservationConfirmCommand command = ReservationConfirmCommand.of(
@@ -198,7 +198,7 @@ public class ReservationController {
     public ReservationStateResponse confirmTrade(
             @PathVariable UUID reservationId,
             @RequestHeader("X-User-Id") UUID userId,
-            @RequestHeader("X-User-Role") String role
+            @RequestHeader("X-User-Roles") String role
     ) {
         ReservationConfirmCommand command = ReservationConfirmCommand.of(
                 reservationId,
