@@ -44,10 +44,15 @@ jobs:
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
-          # 환경 변수에서 읽어올 때 이스케이프 처리를 위해 설정을 변경합니다.
+          # 개인키 생성
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          # 서버 지문 등록 (에러 방지)
+            
+           # 개인키로부터 공개키(.pub) 추출 
+          ssh-keygen -y -f ~/.ssh/id_rsa > ~/.ssh/id_rsa.pub
+          chmod 644 ~/.ssh/id_rsa.pub
+            
+          # 서버 지문 등록
           ssh-keyscan -H 34.64.247.238 >> ~/.ssh/known_hosts
 
       # 빌드된 jar 파일 전송 (IAP 터널 사용 + 수동 키 지정)
