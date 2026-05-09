@@ -30,34 +30,49 @@ jobs:
           -Pgpr.user=${{ github.actor }} \
           -Pgpr.key=${{ secrets.GITHUB_TOKEN }}
 
-      # 직접 SSH 접속을 위한 키 설정
+      # GCP 인증
+      - id: 'auth'
+        uses: 'google-github-actions/auth@v2'
+        with:
+          workload_identity_provider: '${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}'
+          service_account: '${{ secrets.GCP_SERVICE_ACCOUNT }}'
+
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v2'
+
+      # SSH 키 설정 (libcrypto 에러 및 권한 에러 해결 핵심)
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
+          # 환경 변수에서 읽어올 때 이스케이프 처리를 위해 설정을 변경합니다.
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          # 서버 IP를 알려진 호스트에 등록 (IP: 34.64.247.238 확인 필요)
+          # 서버 지문 등록 (에러 방지)
           ssh-keyscan -H 34.64.247.238 >> ~/.ssh/known_hosts
 
-      # 빌드된 jar 파일 전송 (표준 SCP 사용)
+      # 빌드된 jar 파일 전송 (IAP 터널 사용 + 수동 키 지정)
       - name: 'Copy Jar to VM'
         run: |
-          # zsx1397 계정으로 직접 전송
-          scp -i ~/.ssh/id_rsa build/libs/*.jar zsx1397@34.64.247.238:~/app.jar
+          sleep 15
+          gcloud compute scp build/libs/*.jar zsx1397@reservation-service:~/app.jar \
+            --zone=asia-northeast3-a \
+            --tunnel-through-iap \
+            --ssh-key-file=~/.ssh/id_rsa \
+            --quiet
 
-      # 서버에서 앱 실행 (표준 SSH 사용)
+      # 서버에서 앱 실행
       - name: 'SSH and Start App'
         run: |
-          ssh -i ~/.ssh/id_rsa zsx1397@34.64.247.238 "
-            mkdir -p ~/app
-            mv ~/app.jar ~/app/app.jar 2>/dev/null || true
-          
-            # 기존 프로세스 종료
-            pgrep java | xargs -r kill -9 || true
-          
-            # 새 앱 실행
-            nohup java -jar ~/app/app.jar > ~/app/log.txt 2>&1 &
-          
-            sleep 5
-            ps -ef | grep java | grep -v grep
+          gcloud compute ssh zsx1397@reservation-service \
+            --zone=asia-northeast3-a \
+            --tunnel-through-iap \
+            --ssh-key-file=~/.ssh/id_rsa \
+            --quiet \
+            --command="
+              mkdir -p ~/app
+              mv ~/app.jar ~/app/app.jar 2>/dev/null || true
+              pgrep java | xargs -r kill -9 || true
+              nohup java -jar ~/app/app.jar > ~/app/log.txt 2>&1 &
+              sleep 5
+              ps -ef | grep java | grep -v grep
           "
