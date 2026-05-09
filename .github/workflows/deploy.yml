@@ -46,12 +46,11 @@ jobs:
       # 빌드된 jar 파일만 서버로 전송
       - name: 'Copy Jar to VM'
         run: |
-          gcloud compute scp build/libs/*.jar zsx1397@reservation-service:~/app/app.jar --zone=asia-northeast3-a --quiet
-
+          gcloud compute scp build/libs/*.jar reservation-service:app.jar --zone=asia-northeast3-a --quiet
       # 서버에서 앱 실행
       - name: 'SSH and Start App'
         run: |
-          gcloud compute ssh zsx1397@reservation-service --zone=asia-northeast3-a --quiet --command="
+          gcloud compute ssh reservation-service --zone=asia-northeast3-a --quiet --command="
             mkdir -p ~/app
             # 기존에 실행 중인 Java 프로세스 종료 (있으면 죽이고 없으면 통과)
             pgrep java | xargs -r kill -9
