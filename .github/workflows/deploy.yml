@@ -1,75 +1,77 @@
-name: Deploy to GCP VM
+  cat ~/.ssh/deploy_key.pub >> ~/.ssh/authorized_keys
+    chmod 600 ~/.ssh/authorized_keys
+    ```
+  3.  **비밀키(Private Key) 내용 확인 및 복사**:
+    ```bash
+    cat ~/.ssh/deploy_key
+    ```
+    *   `-----BEGIN OPENSSH PRIVATE KEY-----`부터 끝까지 **전체 내용**을 복사해두세요.
 
-on:
-  push:
-    branches: [ "dev" ]
+  ---
+  
+  ### 2단계: GitHub에 열쇠 등록
+    1.  민성님의 GitHub 레포지토리로 가서 **Settings** > **Secrets and variables** > **Actions**를 클릭합니다.
+    2.  **New repository secret**을 누르고 아래 내용을 저장합니다.
+    *   **Name**: `SSH_PRIVATE_KEY`
+    *   **Secret**: 위에서 복사한 열쇠 내용 전체
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
+  ---
+  
+  ### 3단계: 수정된 `deploy.yml` (직접 접속 방식)
+    `gcloud compute scp` 대신 일반 `scp` 명령어를 사용하여 접속합니다. 이 방식은 경로와 권한 문제가 발생하지 않습니다.
+    
+    ```yaml
+  name: Deploy to GCP VM
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+  on:
+    push:
+      branches: [ "dev" ]
 
-      # Java 설정
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          java-version: '21'
-          distribution: 'temurin'
-          cache: gradle
+  jobs:
+    deploy:
+      runs-on: ubuntu-latest
 
-      # Gradle 빌드
-      - name: Build with Gradle
-        env:
-          GPR_USER: ${{ github.actor }}
-          GPR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          chmod +x ./gradlew
-          ./gradlew clean bootJar
+      steps:
+        - name: Checkout code
+          uses: actions/checkout@v4
 
-      # GCP 인증
-      - id: 'auth'
-        uses: 'google-github-actions/auth@v2'
-        with:
-          workload_identity_provider: '${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}'
-          service_account: '${{ secrets.GCP_SERVICE_ACCOUNT }}'
+        - name: Set up JDK 21
+          uses: actions/setup-java@v4
+          with:
+            java-version: '21'
+            distribution: 'temurin'
+            cache: gradle
 
-      - name: 'Set up Cloud SDK'
-        uses: 'google-github-actions/setup-gcloud@v2'
+        - name: Build with Gradle
+          env:
+            GPR_USER: ${{ github.actor }}
+            GPR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          run: |
+            chmod +x ./gradlew
+            ./gradlew clean bootJar
 
-      # 빌드된 jar 파일 전송 (IAP 터널 사용)
-      - name: 'Copy Jar to VM'
-        run: |
-          sleep 15
-          gcloud compute scp build/libs/*.jar reservation-service:~/app.jar \
-            --zone=asia-northeast3-a \
-            --tunnel-through-iap \
-            --quiet
+        # 직접 SSH 접속을 위한 키 설정
+        - name: Setup SSH
+          run: |
+            mkdir -p ~/.ssh
+            echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+            chmod 600 ~/.ssh/id_rsa
+            # 서버의 지문을 미리 인식시킴 (34.64.247.238 부분은 민성님의 서버 IP가 맞는지 확인!)
+            ssh-keyscan -H 34.64.247.238 >> ~/.ssh/known_hosts
 
-      # 서버에서 앱 실행 (명령어 최적화)
-      - name: 'SSH and Start App'
-        run: |
-          gcloud compute ssh reservation-service \
-            --zone=asia-northeast3-a \
-            --tunnel-through-iap \
-            --quiet \
-            --command="
+        # SCP로 파일 전송
+        - name: 'Copy Jar to VM'
+          run: |
+            scp -i ~/.ssh/id_rsa build/libs/*.jar zsx1397@34.64.247.238:~/app.jar
+
+        # SSH로 명령 실행
+        - name: 'SSH and Start App'
+          run: |
+            ssh -i ~/.ssh/id_rsa zsx1397@34.64.247.238 "
               mkdir -p ~/app
-              # 전송된 파일을 app 폴더로 이동 (이미 있다면 덮어쓰기)
-              mv ~/app.jar ~/app/app.jar 2>/dev/null || true
-          
-              # 기존 실행 중인 프로세스 종료
-              pgrep java | xargs -r kill -9 || true
-          
-              # 새 jar 파일 실행
+              mv ~/app.jar ~/app/app.jar
+              pgrep java | xargs -r kill -9
               nohup java -jar ~/app/app.jar > ~/app/log.txt 2>&1 &
-          
-              # 실행 확인을 위해 5초 대기 후 프로세스 목록 출력
               sleep 5
-              ps -ef | grep java | grep -v grep
-          "
+              ps -ef | grep java
+            "
