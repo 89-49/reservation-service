@@ -25,13 +25,13 @@ jobs:
 
       # Gradle 빌드 (jar 파일 생성)
       - name: Build with Gradle
+        env:
+          # GitHub Packages 인증을 위해 토큰을 넘겨줍니다.
+          GPR_USER: ${{ github.actor }}
+          GPR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-            chmod +x ./gradlew
-            ./gradlew clean bootJar
-          env:
-            # GitHub Packages 인증을 위해 토큰을 넘겨줍니다.
-            USERNAME: ${{ github.actor }}
-            TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          chmod +x ./gradlew
+          ./gradlew clean bootJar
 
       # GCP 인증
       - id: 'auth'
