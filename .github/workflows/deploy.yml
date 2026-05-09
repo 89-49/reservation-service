@@ -24,11 +24,17 @@ jobs:
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v2'
 
-      - name: 'Test Connection'
+      # 1. 서버로 파일 전송 (SCP)
+      - name: 'Copy files to VM'
         run: |
-            # 인증된 계정 확인
-            gcloud auth list
-            # 현재 설정된 프로젝트 확인
-            gcloud config set project pgsg-project
-            # 상세 에러 로그와 함께 리스트 조회
-            gcloud compute instances list --verbosity=debug
+          # --quiet를 넣어야 확인 질문 없이 자동으로 진행
+          gcloud compute scp --recurse ./* reservation-service:~/app --zone=asia-northeast3-a --quiet
+
+      # 2. 서버 접속 후 앱 재시작 (SSH)
+      - name: 'SSH and Start App'
+        run: |
+          gcloud compute ssh reservation-service --zone=asia-northeast3-a --quiet --command="
+            cd ~/app
+            # 여기서부터는 서버 안에서 실행될 명령어
+            ls -al
+          "
