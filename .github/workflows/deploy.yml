@@ -15,7 +15,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Java 설정 (프로젝트에 맞는 버전으로 설정)
+      # Java 설정
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
@@ -23,10 +23,9 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
-      # Gradle 빌드 (jar 파일 생성)
+      # Gradle 빌드
       - name: Build with Gradle
         env:
-          # GitHub Packages 인증을 위해 토큰을 넘겨줍니다.
           GPR_USER: ${{ github.actor }}
           GPR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -43,15 +42,16 @@ jobs:
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v2'
 
-      # 빌드된 jar 파일만 서버로 전송
+      # 빌드된 jar 파일 전송 (IAP 터널 사용)
       - name: 'Copy Jar to VM'
         run: |
-          sleep 10
+          sleep 15
           gcloud compute scp build/libs/*.jar reservation-service:~/app.jar \
             --zone=asia-northeast3-a \
             --tunnel-through-iap \
             --quiet
-      # 서버에서 앱 실행
+
+      # 서버에서 앱 실행 (명령어 최적화)
       - name: 'SSH and Start App'
         run: |
           gcloud compute ssh reservation-service \
@@ -60,15 +60,16 @@ jobs:
             --quiet \
             --command="
               mkdir -p ~/app
+              # 전송된 파일을 app 폴더로 이동 (이미 있다면 덮어쓰기)
               mv ~/app.jar ~/app/app.jar 2>/dev/null || true
-            mkdir -p ~/app
-            # 기존에 실행 중인 Java 프로세스 종료 (있으면 죽이고 없으면 통과)
-            pgrep java | xargs -r kill -9
           
-            # 새 jar 파일 실행 (로그는 log.txt에 저장)
-            nohup java -jar ~/app/app.jar > ~/app/log.txt 2>&1 &
-            
-            # 실행 확인 (3초 뒤에 프로세스 떠있는지 확인)
-            sleep 5
-            ps -ef | grep java
+              # 기존 실행 중인 프로세스 종료
+              pgrep java | xargs -r kill -9 || true
+          
+              # 새 jar 파일 실행
+              nohup java -jar ~/app/app.jar > ~/app/log.txt 2>&1 &
+          
+              # 실행 확인을 위해 5초 대기 후 프로세스 목록 출력
+              sleep 5
+              ps -ef | grep java | grep -v grep
           "
