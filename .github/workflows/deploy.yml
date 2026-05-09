@@ -46,6 +46,7 @@ jobs:
       # 빌드된 jar 파일만 서버로 전송
       - name: 'Copy Jar to VM'
         run: |
+          sleep 10
           gcloud compute scp build/libs/*.jar reservation-service:app.jar --zone=asia-northeast3-a --quiet
       # 서버에서 앱 실행
       - name: 'SSH and Start App'
