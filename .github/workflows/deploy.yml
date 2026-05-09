@@ -44,7 +44,7 @@ jobs:
       - name: 'Copy Jar to VM'
         run: |
           sleep 15
-          gcloud compute scp build/libs/*.jar zsx1397@reservation-service:~/app.jar \
+          gcloud compute scp build/libs/*.jar reservation-service:~/app.jar \
             --zone=asia-northeast3-a \
             --tunnel-through-iap \
             --quiet
@@ -52,7 +52,7 @@ jobs:
       # 서버에서 앱 실행
       - name: 'SSH and Start App'
         run: |
-          gcloud compute ssh zsx1397@reservation-service \
+          gcloud compute ssh reservation-service \
             --zone=asia-northeast3-a \
             --tunnel-through-iap \
             --quiet \
