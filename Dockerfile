@@ -2,7 +2,6 @@
 FROM eclipse-temurin:21-jdk-alpine AS build
 WORKDIR /app
 
-# dos2unix 설치
 RUN apk add --no-cache dos2unix
 
 # 모든 소스 코드 복사
@@ -13,7 +12,9 @@ COPY . .
 RUN dos2unix gradlew && chmod +x gradlew
 
 # 빌드 실행
-RUN ./gradlew clean bootJar -x test
+ARG GPR_USER
+ARG GPR_TOKEN
+RUN ./gradlew clean bootJar -x test -Pgpr.user=${GPR_USER} -Pgpr.key=${GPR_TOKEN}
 
 # 실행 단계
 FROM eclipse-temurin:21-jre-alpine

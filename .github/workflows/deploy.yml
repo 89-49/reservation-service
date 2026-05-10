@@ -54,9 +54,9 @@ jobs:
             --command="
               cd ~/app
               # 기존 컨테이너 중지 및 삭제
-              docker-compose down
+              docker compose down
               # 다시 빌드 및 실행
-              docker-compose up -d --build
+              docker compose up -d --build
               # 상태 확인
               docker ps
           "
