@@ -238,7 +238,15 @@ public class ReservationService {
 
         Reservation reservation = findById(command.reservationId());
 
-        reservation.close();
+        ReservationHistory history = reservationDomainService.confirmTrade(
+                reservation,
+                command.userId(),
+                command.role()
+        );
+
+        if (history != null) {
+            reservationHistoryRepository.save(history);
+        }
 
         return ReservationStateInfo.from(reservation);
     }

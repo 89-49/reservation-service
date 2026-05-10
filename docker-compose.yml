@@ -19,6 +19,8 @@ services:
     volumes:
       # 로컬의 resources/ssl 폴더를 컨테이너의 /app/ssl 폴더로 연결
       - ./src/main/resources/ssl:/app/ssl:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "${SERVER_PORT}:${SERVER_PORT}"
     depends_on:

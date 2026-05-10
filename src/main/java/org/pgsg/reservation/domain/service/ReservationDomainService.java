@@ -1,6 +1,7 @@
 package org.pgsg.reservation.domain.service;
 
 import lombok.RequiredArgsConstructor;
+import org.pgsg.common.exception.ErrorCode;
 import org.pgsg.reservation.domain.exception.ReservationErrorCode;
 import org.pgsg.reservation.domain.exception.ReservationException;
 import org.pgsg.reservation.domain.model.reservation.*;
@@ -262,6 +263,37 @@ public class ReservationDomainService {
     }
 
     /**
+     * 거래 완료
+     * 거래 완료 도메인 로직 및 이력 객체 생성
+     */
+    public ReservationHistory confirmTrade(Reservation reservation, UUID userId, String role) {
+        // 규칙: 오직 ADMIN(시스템 포함)만 거래 확정을 할 수 있다.
+        String normalizedRole = role != null ? role.trim().toUpperCase(Locale.ROOT) : "";
+        if (!"ADMIN".equals(normalizedRole)) {
+            throw new ReservationException(ReservationErrorCode.UNAUTHORIZED_ACCESS, "관리자만 거래를 확정할 수 있습니다.");
+        }
+
+        // 상태 변경 전 상태 보관 (이력 기록용)
+        ReservationStatus previousStatus = reservation.getStatus();
+
+        // 엔티티 비즈니스 로직 실행 (COMPLETED -> CLOSED)
+        reservation.confirmTrade();
+
+        // 이력(History) 객체 생성 및 반환
+        return ReservationHistory.of(
+                reservation.getId(),
+                previousStatus,
+                reservation.getStatus(),
+                "거래가 최종 확정되었습니다.",
+                userId
+        );
+    }
+
+    private boolean isAdmin(String role) {
+        return "ADMIN".equals(role);
+    }
+
+    /**
      * 다음 구매자 승계 내부 로직
      */
     private void handleNextBuyerSequence(Reservation reservation) {
@@ -286,6 +318,5 @@ public class ReservationDomainService {
             throw new ReservationException(ReservationErrorCode.INVALID_INPUT);
         }
     }
-
 
 }

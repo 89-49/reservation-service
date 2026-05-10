@@ -123,6 +123,12 @@ public class Reservation extends BaseEntity {
         this.status = ReservationStatus.CANCELLED_BY_SELLER;
     }
 
+    // 거래 완료 : COMPLETED에서만 CLOSED를 할 수 있다
+    public void confirmTrade() {
+        validateStatus(ReservationStatus.COMPLETED);
+        this.status = ReservationStatus.CLOSED;
+    }
+
     // 다음 순번 구매자로 교체
     public void changeToNextBuyer(ReservationCandidate nextCandidate) {
         // 현재 변경 가능한 상태인지 검증 (AVAILABLE 혹은 이전 구매자 취소 상태)
