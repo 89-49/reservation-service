@@ -27,10 +27,10 @@ spring:
     ssl:
       # Docker 환경(file:/app/...)과 로컬 환경(C:/...)을 환경 변수 하나로 제어합니다.
       trust-store-location: ${KAFKA_SSL_PATH:file:/app/ssl/kafka.server.truststore.jks}
-      trust-store-password: _aA123456
+      trust-store-password: ${KAFKA_SSL_TRUSTSTORE_PASSWORD}
     properties:
       security.protocol: SSL
-      ssl.endpoint.identification.algorithm: ""
+      ssl.endpoint.identification.algorithm: https
 
   data:
     redis:
