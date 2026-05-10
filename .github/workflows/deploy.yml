@@ -15,21 +15,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Java 설정 및 빌드
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          java-version: '21'
-          distribution: 'temurin'
-          cache: gradle
-
-      - name: Build with Gradle
-        run: |
-          chmod +x ./gradlew
-          ./gradlew clean bootJar \
-          -Pgpr.user=${{ github.actor }} \
-          -Pgpr.key=${{ secrets.GITHUB_TOKEN }}
-
       # GCP 인증
       - id: 'auth'
         uses: 'google-github-actions/auth@v2'
@@ -40,33 +25,26 @@ jobs:
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v2'
 
-      # SSH 키 설정 (libcrypto 에러 및 권한 에러 해결 핵심)
+      # SSH 키 설정
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
-          # 개인키 생성
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-            
-           # 개인키로부터 공개키(.pub) 추출 
           ssh-keygen -y -f ~/.ssh/id_rsa > ~/.ssh/id_rsa.pub
-          chmod 644 ~/.ssh/id_rsa.pub
-            
-          # 서버 지문 등록
           ssh-keyscan -H 34.64.247.238 >> ~/.ssh/known_hosts
 
-      # 빌드된 jar 파일 전송 (IAP 터널 사용 + 수동 키 지정)
-      - name: 'Copy Jar to VM'
+      # 프로젝트 전체 파일을 VM으로 전송
+      - name: 'Sync Project to VM'
         run: |
-          sleep 15
-          gcloud compute scp build/libs/*.jar zsx1397@reservation-service:~/app.jar \
+          gcloud compute scp --recurse . zsx1397@reservation-service:~/app \
             --zone=asia-northeast3-a \
             --tunnel-through-iap \
             --ssh-key-file=~/.ssh/id_rsa \
             --quiet
 
-      # 서버에서 앱 실행
-      - name: 'SSH and Start App'
+      # VM에서 Docker Compose 실행
+      - name: 'Docker Compose Up'
         run: |
           gcloud compute ssh zsx1397@reservation-service \
             --zone=asia-northeast3-a \
@@ -74,10 +52,11 @@ jobs:
             --ssh-key-file=~/.ssh/id_rsa \
             --quiet \
             --command="
-              mkdir -p ~/app
-              mv ~/app.jar ~/app/app.jar 2>/dev/null || true
-              pgrep java | xargs -r kill -9 || true
-              nohup java -jar ~/app/app.jar > ~/app/log.txt 2>&1 &
-              sleep 5
-              ps -ef | grep java | grep -v grep
+              cd ~/app
+              # 기존 컨테이너 중지 및 삭제
+              docker-compose down
+              # 다시 빌드 및 실행
+              docker-compose up -d --build
+              # 상태 확인
+              docker ps
           "
