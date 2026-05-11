@@ -19,6 +19,10 @@ import org.pgsg.reservation.domain.repository.ReservationHistoryRepository;
 import org.pgsg.reservation.domain.service.ReservationDomainService;
 import org.pgsg.reservation.domain.repository.ReservationRepository;
 import org.pgsg.reservation.application.dto.info.ReservationCandidateInfo;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -39,6 +43,7 @@ public class ReservationService {
 
     // 도메인 서비스 호출 전까지의 작업은 트랜잭션 밖으로 분리(추후 고도화 작업시)
     @Transactional
+    @CachePut(value = "reservationDetail", key = "#result.reservationId")
     public ReservationCreateResult createReservation(ReservationCreateCommand command) {
         try {
             if (reservationRepository.existsByProductId(command.productId())) {
@@ -75,6 +80,10 @@ public class ReservationService {
 
     // 예약 목록 조회
     @Transactional(readOnly = true)
+    @Cacheable(
+            value = "reservations",
+            key = "{#userId, #role, #query.sellerName(), #query.buyerName(), #query.status(), #query.productId(), #pageable.pageNumber, #pageable.pageSize}"
+    )
     public Page<ReservationSearchResult> getSearchReservations(
             UUID userId,
             String role,
@@ -103,6 +112,7 @@ public class ReservationService {
 
 
     // 예약 상세 조회
+    @Cacheable(value = "reservationDetail", key = "#reservationId")
     @Transactional(readOnly = true)
     public ReservationDetailResult getReservationDetail(UUID reservationId, UUID userId, String role) {
         // 엔티티 조회
@@ -117,6 +127,12 @@ public class ReservationService {
 
     // 예약 신청
     @Transactional
+    @Caching(evict = {
+            // 해당 예약의 상세 정보 캐시만 삭제
+            @CacheEvict(value = "reservationDetail", key = "#command.reservationId()"),
+            // 목록은 순서나 데이터가 변했을 수 있으므로 전체 삭제
+            @CacheEvict(value = "reservations", allEntries = true)
+    })
     public ReservationCandidateInfo applyReservation(ReservationApplyCommand command) {
         Reservation savedReservation;
 
@@ -148,6 +164,7 @@ public class ReservationService {
 
     // 구매자 취소 처리 로직
     @Transactional
+    @CacheEvict(value = "reservationDetail", key = "#command.reservationId()")
     public ReservationStateInfo cancelByBuyer(ReservationCancelCommand command) {
         Reservation reservation = findById(command.reservationId());
 
@@ -165,6 +182,7 @@ public class ReservationService {
 
     // 추후 결제 시스템 연동시 트리거 발동
     @Transactional
+    @CacheEvict(value = "reservationDetail", key = "#command.reservationId()")
     public ReservationStateInfo confirmPayment(ReservationConfirmCommand command) {
         Reservation reservation = findById(command.reservationId());
 
@@ -185,6 +203,7 @@ public class ReservationService {
 
     // 판매자 취소 로직
     @Transactional
+    @CacheEvict(value = "reservationDetail", key = "#command.reservationId()")
     public ReservationStateInfo cancelBySeller(ReservationCancelCommand command) {
         Reservation reservation = findById(command.reservationId());
 
@@ -202,6 +221,7 @@ public class ReservationService {
 
     // 예약 만료
     @Transactional
+    @CacheEvict(value = "reservationDetail", key = "#command.reservationId()")
     public ReservationStateInfo expireByAdmin(ReservationExpireCommand command) {
         Reservation reservation = findById(command.reservationId());
 
@@ -220,6 +240,7 @@ public class ReservationService {
 
     // 예약 완료
     @Transactional
+    @CacheEvict(value = "reservationDetail", key = "#command.reservationId()")
     public ReservationStateInfo completeReservation(ReservationConfirmCommand command) {
         // 예약 엔티티 조회
         Reservation reservation = findById(command.reservationId());
@@ -234,6 +255,7 @@ public class ReservationService {
 
     // 거래 완료
     @Transactional
+    @CacheEvict(value = "reservationDetail", key = "#command.reservationId()")
     public ReservationStateInfo confirmTrade(ReservationConfirmCommand command) {
 
         Reservation reservation = findById(command.reservationId());
