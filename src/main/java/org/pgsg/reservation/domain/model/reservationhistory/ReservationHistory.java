@@ -5,6 +5,7 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.pgsg.common.domain.BaseEntity;
 import org.pgsg.reservation.domain.model.reservation.ReservationStatus;
 
 import java.util.UUID;
@@ -14,7 +15,7 @@ import java.util.UUID;
 @Table(name = "p_reservation_histories")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public class ReservationHistory {
+public class ReservationHistory extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

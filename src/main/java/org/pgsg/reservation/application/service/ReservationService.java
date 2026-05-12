@@ -222,6 +222,7 @@ public class ReservationService {
         );
 
         reservationHistoryRepository.save(history);
+        reservationEventPublisher.publishReservationCancelled(reservation,command.reason());
 
         return ReservationStateInfo.from(reservation);
     }

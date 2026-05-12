@@ -90,12 +90,6 @@ public class Reservation extends BaseEntity {
         this.status = ReservationStatus.COMPLETED;
     }
 
-    // 최종 종료: 완료된 거래를 아카이브 상태로 변경
-    public void close() {
-        validateStatus(ReservationStatus.COMPLETED);
-        this.status = ReservationStatus.CLOSED;
-    }
-
     // 거래 복구: COMPLETED 상태에서 취소 발생 시 AVAILABLE로 복구
     public void rollbackToAvailable() {
         validateStatus(ReservationStatus.COMPLETED);
@@ -117,9 +111,9 @@ public class Reservation extends BaseEntity {
         this.buyerInfo = null; // 기존 구매자 정보 제거
     }
 
-    // 판매자 취소: PENDING 또는 PAID 상태에서 판매자가 취소(영구 종료)
+    // 판매자 취소: AVAILABLE,PENDING,PAID 상태에서 판매자가 취소(영구 종료)
     public void cancelBySeller() {
-        validateStatus(ReservationStatus.PENDING, ReservationStatus.PAID);
+        validateStatus(ReservationStatus.AVAILABLE,ReservationStatus.PENDING, ReservationStatus.PAID);
         this.status = ReservationStatus.CANCELLED_BY_SELLER;
     }
 

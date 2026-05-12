@@ -70,5 +70,6 @@ eureka:
 topics:
   reservation:
     completed: prod-reservation-completed
+    cancelled: prod-reservation-cancelled
   product:
     created: prod-product-created
