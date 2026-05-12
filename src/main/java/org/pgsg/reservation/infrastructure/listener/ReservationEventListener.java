@@ -8,6 +8,7 @@ import org.pgsg.common.messaging.annotation.IdempotentConsumer;
 import org.pgsg.reservation.application.dto.command.ReservationConfirmCommand;
 import org.pgsg.reservation.application.service.ReservationService;
 import org.pgsg.reservation.infrastructure.listener.dto.TradeCompletedEvent;
+import org.pgsg.reservation.infrastructure.event.ReservationEventBridge;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
@@ -21,6 +22,7 @@ public class ReservationEventListener {
 
     private final ReservationService reservationService;
     private final ObjectMapper objectMapper;
+    private final ReservationEventBridge bridge;
 
     private static final UUID SYSTEM_ID = UUID.fromString("00000000-0000-0000-0000-000000000000");
     private static final String SYSTEM_ROLE = "ADMIN";
@@ -34,9 +36,9 @@ public class ReservationEventListener {
             groupId = "reservation-group"
     )
     public void handleTradeCompleted(ConsumerRecord<String, String> record) {
-
+        TradeCompletedEvent event = null;
         try {
-            TradeCompletedEvent event = objectMapper.readValue(record.value(), TradeCompletedEvent.class);
+            event = objectMapper.readValue(record.value(), TradeCompletedEvent.class);
             log.info("거래 완료 이벤트 수신 - Trade ID: {}, Reservation ID: {}",
                     event.tradeId(), event.reservationId());
 
@@ -51,7 +53,19 @@ public class ReservationEventListener {
             log.info("예약 확정 처리 성공 - Reservation ID: {}", event.reservationId());
         }catch (Exception e) {
             log.error("예약 확정 처리 실패 - Reservation ID: {}, Error: {}",
-                    record.topic(), e.getMessage());
+                    (event != null) ? event.reservationId() : "Unknown", e.getMessage());
+
+            // 실패 알림 발송
+            // 이 알림을 보고 거래 서비스나 관리자 서비스가 후속 조치(거래 롤백 등)를 할 수 있습니다.
+            if (event != null) {
+                // 사실 여기서는 productId를 알기 어려울 수 있으니,
+                // 브릿지에 reservationId를 받는 실패 메서드를 하나 더 만들거나
+                // event에서 productId를 꺼낼 수 있도록 설계하는 것이 좋을 수도?
+                bridge.publishTradeConfirmFailed(
+                        event.reservationId(), // UUID 타입
+                        "CONFIRM_FAIL: " + e.getMessage()
+                );
+            }
         }
     }
 }

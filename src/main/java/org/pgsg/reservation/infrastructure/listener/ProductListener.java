@@ -12,6 +12,9 @@ import org.pgsg.reservation.domain.exception.ReservationErrorCode;
 import org.pgsg.reservation.domain.exception.ReservationException;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
+import org.pgsg.reservation.infrastructure.event.ReservationEventBridge;
+
+import java.util.Objects;
 
 @Slf4j
 @Component
@@ -20,6 +23,7 @@ public class ProductListener {
 
     private final ReservationService reservationService;
     private final ObjectMapper objectMapper;
+    private final ReservationEventBridge eventBridge;
 
     /**
      * 상품 서비스에서 타임딜 상품이 생성되었을 때의 이벤트를 수신합니다.
@@ -42,15 +46,18 @@ public class ProductListener {
             reservationService.createReservation(command);
         }catch (ReservationException e) {
             if (e.getErrorCode() == ReservationErrorCode.ALREADY_EXISTS) {
-                log.info("중복 예약 생성 이벤트 무시: productId={}",
-                        (event != null) ? event.productId() : "Unknown");
+                log.info("중복 예약 생성 이벤트 무시 (이미 존재): productId={}", Objects.requireNonNull(event).productId());
                 return;
             }
-            log.error("예약 생성 중 비즈니스 오류 발생: {}", e.getMessage());
-            throw e; // 재시도가 필요한 경우 던짐
+
+            log.error("예약 생성 비즈니스 실패: {}", e.getMessage());
+            eventBridge.publishReservationCreationFailed(Objects.requireNonNull(event).productId(), e.getMessage());
+
         } catch (Exception e) {
-            log.error("상품 생성 이벤트 처리 실패 - Topic: {}, Error: {}",
-                    record.topic(), e.getMessage());
+            log.error("시스템 장애로 인한 예약 생성 실패: {}", e.getMessage());
+            if (event != null) {
+                eventBridge.publishReservationCreationFailed(event.productId(), "SYSTEM_ERROR: " + e.getMessage());
+            }
         }
     }
 
