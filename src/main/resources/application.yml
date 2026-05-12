@@ -30,7 +30,7 @@ spring:
       trust-store-password: ${KAFKA_SSL_TRUSTSTORE_PASSWORD}
     properties:
       security.protocol: SSL
-      ssl.endpoint.identification.algorithm: https
+      ssl.endpoint.identification.algorithm: ""
 
   data:
     redis:
@@ -58,14 +58,14 @@ jwt:
 
 eureka:
   instance:
-    instance-id: ${spring.application.name}:${random.value}
+    instance-id: ${spring.application.name}:${spring.application.instance_id:${random.value}}
     prefer-ip-address: true
   client:
-    enabled: ${EUREKA_ENABLED:true} # 도커/로컬 상황에 따라 토글 가능
+    enabled: ${EUREKA_ENABLED:true}
     register-with-eureka: true
     fetch-registry: true
     service-url:
-      defaultZone: ${EUREKA_SERVER:http://localhost:8761/eureka/}
+      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka/}
 
 topics:
   reservation:
