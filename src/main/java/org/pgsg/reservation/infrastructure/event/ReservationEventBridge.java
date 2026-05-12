@@ -21,7 +21,7 @@ public class ReservationEventBridge implements ReservationEventPublisher {
     @Value("${topics.reservation.completed}")
     private String completedTopicName;
 
-    @Value("prod-reservation-buyercancelled")
+    @Value("${topics.reservation.cancelled}")
     private String buyerCancelledTopicName;
 
     @Override
