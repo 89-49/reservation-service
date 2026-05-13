@@ -11,6 +11,8 @@ import org.pgsg.reservation.infrastructure.listener.dto.ReservationEventPublishe
 import org.pgsg.reservation.domain.model.reservation.Reservation;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
@@ -25,8 +27,11 @@ public class ReservationEventBridge implements ReservationEventPublisher {
     @Value("${topics.reservation.cancelled}")
     private String buyerCancelledTopicName;
 
+    @Value("${topics.product.failed}")
+    private String productFailureTopicName;
+
     @Value("${topics.reservation.failed}")
-    private String failureTopicName;
+    private String tradeFailureTopicName;
 
     @Override
     public void publishReservationCompleted(Reservation reservation) {
@@ -59,6 +64,7 @@ public class ReservationEventBridge implements ReservationEventPublisher {
     }
 
     // 상품 생성 실패시 상품에 이벤트 발송
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void publishReservationCreationFailed(UUID productId, String reason) {
         try {
             log.info("예약 생성 실패 Outbox 등록 시작 - 상품 ID: {}", productId);
@@ -74,7 +80,7 @@ public class ReservationEventBridge implements ReservationEventPublisher {
                     correlationId,    // 상품 서비스가 식별할 ID
                     domainId,         // Outbox 식별 ID
                     "RESERVATION",
-                    failureTopicName, // 실패 전용 토픽
+                    productFailureTopicName, // 실패 전용 토픽
                     event
             ));
 
@@ -115,6 +121,7 @@ public class ReservationEventBridge implements ReservationEventPublisher {
     }
 
     // 거래 완료 생성 실패시 발송하는 이벤트
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void publishTradeConfirmFailed(UUID reservationId, String reason) {
         log.info("예약 생성 실패 Outbox 등록 시작 - 예약 ID: {}", reservationId);
 
@@ -128,7 +135,7 @@ public class ReservationEventBridge implements ReservationEventPublisher {
                 correlationId,
                 domainId,
                 "TRADE", // 도메인 타입 구분
-                "prod-trade-rollback", // 거래 서비스가 구독할 토픽명
+                tradeFailureTopicName, // 거래 서비스가 구독할 토픽명
                 event
         ));
     }

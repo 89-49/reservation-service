@@ -71,6 +71,7 @@ topics:
   reservation:
     completed: prod-reservation-completed
     cancelled: prod-reservation-cancelled
-    failed: prod-product-failed
+    failed : prod-reservation-tradefail
   product:
     created: prod-product-created
+    failed: prod-product-failed
