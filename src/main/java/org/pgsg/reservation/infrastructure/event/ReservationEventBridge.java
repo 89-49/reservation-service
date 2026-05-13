@@ -88,6 +88,7 @@ public class ReservationEventBridge implements ReservationEventPublisher {
 
         } catch (Exception e) {
             log.error("실패 알림 Outbox 등록 중 오류 발생 - 상품 ID: {}", productId, e);
+            throw new RuntimeException("예약 생성 실패 이벤트 발행 중 오류 발생", e);
         }
     }
 
