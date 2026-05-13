@@ -57,10 +57,16 @@ jobs:
             --quiet \
             --command="
               cd ~/app
-              # 기존 컨테이너 중지 및 삭제
-              docker-compose down
-              # 다시 빌드 및 실행
-              docker-compose up -d --build
-              # 상태 확인
+              # 기존 컨테이너를 이름 기준으로 중지하고 삭제
+              docker-compose down --remove-orphans
+          
+              # 이전 이미지 삭제
+              docker rmi app-reservation-service || true
+          
+              # 새로운 소스로 빌드 및 실행
+              docker-compose up -d --build --force-recreate
+          
+              # 5초 대기 후 상태 확인
+              sleep 5
               docker ps
           "
