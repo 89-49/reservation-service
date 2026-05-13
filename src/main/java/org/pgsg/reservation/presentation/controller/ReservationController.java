@@ -2,6 +2,7 @@ package org.pgsg.reservation.presentation.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.pgsg.reservation.application.dto.command.*;
 import org.pgsg.reservation.application.dto.info.ReservationCandidateInfo;
 import org.pgsg.reservation.application.dto.info.ReservationStateInfo;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
+@Slf4j
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/reservations")
@@ -51,6 +53,8 @@ public class ReservationController {
             @ModelAttribute ReservationSearchRequest request,
             @PageableDefault(size = 10) Pageable pageable
     ) {
+
+        log.info("테스트{}", role);
 
         ReservationSearchQuery query = new ReservationSearchQuery(
                 request.getSellerName(),
