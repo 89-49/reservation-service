@@ -34,10 +34,14 @@ jobs:
           ssh-keygen -y -f ~/.ssh/id_rsa > ~/.ssh/id_rsa.pub
           ssh-keyscan -H 34.64.247.238 >> ~/.ssh/known_hosts
 
-      # 프로젝트 전체 파일을 VM으로 전송
+      # 프로젝트 핵심 파일만 VM으로 전송
       - name: 'Sync Project to VM'
         run: |
-          gcloud compute scp --recurse . zsx1397@reservation-service:~/app \
+          mkdir -p deploy
+          cp -r src deploy/
+          cp build.gradle settings.gradle Dockerfile docker-compose.yml deploy/
+
+          gcloud compute scp --recurse ./deploy/* zsx1397@reservation-service:~/app \
             --zone=asia-northeast3-a \
             --tunnel-through-iap \
             --ssh-key-file=~/.ssh/id_rsa \
