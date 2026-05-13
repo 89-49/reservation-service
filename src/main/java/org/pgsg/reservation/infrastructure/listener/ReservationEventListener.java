@@ -1,5 +1,6 @@
 package org.pgsg.reservation.infrastructure.listener;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,9 +37,17 @@ public class ReservationEventListener {
             groupId = "reservation-group"
     )
     public void handleTradeCompleted(ConsumerRecord<String, String> record) {
-        TradeCompletedEvent event = null;
+        TradeCompletedEvent event;
+        UUID reservationId = null;
         try {
-            event = objectMapper.readValue(record.value(), TradeCompletedEvent.class);
+            JsonNode root = objectMapper.readTree(record.value());
+            try {
+                reservationId = UUID.fromString(root.get("reservationId").asText());
+            } catch (IllegalArgumentException e) {
+                log.warn("유효하지 않은 UUID 형식의 reservationId 수신: {}", root.get("reservationId").asText());
+            }
+            event = objectMapper.treeToValue(root, TradeCompletedEvent.class);
+
             log.info("거래 완료 이벤트 수신 - Trade ID: {}, Reservation ID: {}",
                     event.tradeId(), event.reservationId());
 
@@ -53,16 +62,16 @@ public class ReservationEventListener {
             log.info("예약 확정 처리 성공 - Reservation ID: {}", event.reservationId());
         }catch (Exception e) {
             log.error("예약 확정 처리 실패 - Reservation ID: {}, Error: {}",
-                    (event != null) ? event.reservationId() : "Unknown", e.getMessage());
+                    (reservationId != null) ? reservationId : "Unknown", e.getMessage());
 
             // 실패 알림 발송
             // 이 알림을 보고 거래 서비스나 관리자 서비스가 후속 조치(거래 롤백 등)를 할 수 있습니다.
-            if (event != null) {
+            if (reservationId != null) {
                 // 사실 여기서는 productId를 알기 어려울 수 있으니,
                 // 브릿지에 reservationId를 받는 실패 메서드를 하나 더 만들거나
                 // event에서 productId를 꺼낼 수 있도록 설계하는 것이 좋을 수도?
                 bridge.publishTradeConfirmFailed(
-                        event.reservationId(), // UUID 타입
+                        reservationId, // UUID 타입
                         "CONFIRM_FAIL: " + e.getMessage()
                 );
             }
