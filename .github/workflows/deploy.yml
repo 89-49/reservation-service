@@ -15,7 +15,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # GCP 인증
+      # GCP auth
       - id: 'auth'
         uses: 'google-github-actions/auth@v2'
         with:
@@ -25,7 +25,7 @@ jobs:
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v2'
 
-      # SSH 키 설정
+      # SSH key setup
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
@@ -34,7 +34,7 @@ jobs:
           ssh-keygen -y -f ~/.ssh/google_compute_engine > ~/.ssh/google_compute_engine.pub
           ssh-keyscan -H 34.64.247.238 >> ~/.ssh/known_hosts
 
-      # 프로젝트 핵심 파일만 VM으로 전송
+      # Sync deploy files to VM
       - name: 'Sync Project to VM'
         run: |
           mkdir -p deploy
@@ -47,7 +47,7 @@ jobs:
             --ssh-key-file=~/.ssh/google_compute_engine \
             --quiet
 
-      # VM에서 Docker Compose 실행
+      # Run Docker Compose on VM
       - name: 'Docker Compose Up'
         run: |
           gcloud compute ssh zsx1397@reservation-service \
@@ -56,20 +56,29 @@ jobs:
             --ssh-key-file=~/.ssh/google_compute_engine \
             --quiet \
             --command="
+              set -e
+
               cd ~/app
-          
+
               docker-compose down --remove-orphans
-          
+
               if [ ! -f .env ]; then
-                echo '.env 파일이 없습니다!'
+                echo '.env file is missing!'
                 exit 1
               fi
-          
-              # --env-file 옵션을 사용하여 직접 전달
-              # GPR_USER와 GPR_TOKEN은 Dockerfile에서 ARG로 사용되므로 빌드 시점에 주입
+
+              invalid_env_lines=\$(grep -nEv '^[[:space:]]*(#|$|[A-Za-z_][A-Za-z0-9_]*=)' .env || true)
+              if [ -n \"\$invalid_env_lines\" ]; then
+                echo '.env has lines that Docker env_file cannot parse.'
+                echo 'Use KEY=value only. Do not use export KEY=value or keys with spaces.'
+                echo \"\$invalid_env_lines\"
+                exit 1
+              fi
+
+              docker-compose config >/dev/null
               docker-compose up -d --build --force-recreate
-          
+
               sleep 10
               docker ps
-              docker logs reservation-service || echo '실행 실패 - 빌드 로그를 확인하세요'
+              docker logs reservation-service
           "
