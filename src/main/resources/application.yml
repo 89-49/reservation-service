@@ -15,7 +15,7 @@ spring:
   config:
     import:
       - "optional:file:.env[.properties]"
-      - "optional:configserver:http://config-server"
+      - "optional:configserver: "
 
   cloud:
     config:
