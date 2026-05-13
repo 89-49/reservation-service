@@ -56,10 +56,14 @@ jobs:
             --ssh-key-file=~/.ssh/id_rsa \
             --quiet \
             --command="
-            cd ~/app
-              docker-compose down --remove-orphans -v
+              cd ~/app
+          
+              docker rm -f reservation-service || true
+          
               docker rmi -f app-reservation-service || true
+          
               docker-compose up -d --build --force-recreate
+          
               sleep 5
               docker ps
-            "
+          "
