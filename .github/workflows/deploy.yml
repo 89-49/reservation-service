@@ -37,18 +37,35 @@ jobs:
       # Sync deploy files to VM
       - name: 'Sync Project to VM'
         run: |
+          retry() {
+            local attempts=5
+            local delay=10
+            local n=1
+
+            until "$@"; do
+              if [ "$n" -ge "$attempts" ]; then
+                echo "Command failed after $attempts attempts: $*"
+                return 1
+              fi
+
+              echo "Command failed. Retrying in ${delay}s... ($n/$attempts)"
+              sleep "$delay"
+              n=$((n + 1))
+            done
+          }
+
           mkdir -p deploy
           cp -r src deploy/
           cp build.gradle settings.gradle Dockerfile docker-compose.yml deploy/
 
-          gcloud compute ssh zsx1397@reservation-service \
+          retry gcloud compute ssh zsx1397@reservation-service \
             --zone=asia-northeast3-a \
             --tunnel-through-iap \
             --ssh-key-file=~/.ssh/google_compute_engine \
             --quiet \
             --command="mkdir -p ~/app && rm -rf ~/app/src ~/app/build"
 
-          gcloud compute scp --recurse ./deploy/* zsx1397@reservation-service:~/app \
+          retry gcloud compute scp --recurse ./deploy/* zsx1397@reservation-service:~/app \
             --zone=asia-northeast3-a \
             --tunnel-through-iap \
             --ssh-key-file=~/.ssh/google_compute_engine \
@@ -57,7 +74,24 @@ jobs:
       # Run Docker Compose on VM
       - name: 'Docker Compose Up'
         run: |
-          gcloud compute ssh zsx1397@reservation-service \
+          retry() {
+            local attempts=5
+            local delay=10
+            local n=1
+
+            until "$@"; do
+              if [ "$n" -ge "$attempts" ]; then
+                echo "Command failed after $attempts attempts: $*"
+                return 1
+              fi
+
+              echo "Command failed. Retrying in ${delay}s... ($n/$attempts)"
+              sleep "$delay"
+              n=$((n + 1))
+            done
+          }
+
+          retry gcloud compute ssh zsx1397@reservation-service \
             --zone=asia-northeast3-a \
             --tunnel-through-iap \
             --ssh-key-file=~/.ssh/google_compute_engine \
