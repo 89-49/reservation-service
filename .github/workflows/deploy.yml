@@ -29,9 +29,9 @@ jobs:
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keygen -y -f ~/.ssh/id_rsa > ~/.ssh/id_rsa.pub
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/google_compute_engine
+          chmod 600 ~/.ssh/google_compute_engine
+          ssh-keygen -y -f ~/.ssh/google_compute_engine > ~/.ssh/google_compute_engine.pub
           ssh-keyscan -H 34.64.247.238 >> ~/.ssh/known_hosts
 
       # 프로젝트 핵심 파일만 VM으로 전송
@@ -44,16 +44,16 @@ jobs:
           gcloud compute scp --recurse ./deploy/* zsx1397@reservation-service:~/app \
             --zone=asia-northeast3-a \
             --tunnel-through-iap \
-            --ssh-key-file=~/.ssh/id_rsa \
+            --ssh-key-file=~/.ssh/google_compute_engine \
             --quiet
 
       # VM에서 Docker Compose 실행
       - name: 'Docker Compose Up'
         run: |
-          gcloud compute ssh ***@reservation-service \
+          gcloud compute ssh zsx1397@reservation-service \
             --zone=asia-northeast3-a \
             --tunnel-through-iap \
-            --ssh-key-file=~/.ssh/id_rsa \
+            --ssh-key-file=~/.ssh/google_compute_engine \
             --quiet \
             --command="
               cd ~/app
