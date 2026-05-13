@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  reservation-service:
+    container_name: reservation-service
+    image: ${AR_IMAGE_PATH}:${IMAGE_TAG:-latest} # AR 기반 이미지 사용
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      # 서버의 /opt/reservation-service/ssl 폴더를 컨테이너 내부로 연결
+      - ./ssl:/app/ssl:ro
+    ports:
+      - "${SERVER_PORT:-8085}:${SERVER_PORT:-8085}"
+      - "8081:8081" # 헬스체크용 포트
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - pgsg-network
+
+  db:
+    image: postgres:17
+    container_name: reservation-db
+    environment:
+      POSTGRES_DB: ${DB_NAME:-reservation_db}
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres-reservation-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres} -d ${DB_NAME:-reservation_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - pgsg-network
+
+  redis:
+    image: redis:7.2
+    container_name: reservation-redis
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - pgsg-network
+
+networks:
+  pgsg-network:
+    external: true
+
+volumes:
+  postgres-reservation-data:

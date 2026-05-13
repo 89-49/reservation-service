@@ -15,7 +15,13 @@ spring:
   config:
     import:
       - "optional:file:.env[.properties]"
-      - "optional:configserver:${CONFIG_SERVER:http://34.50.50.170:13100}"
+      - "optional:configserver:http://config-server"
+
+  cloud:
+    config:
+      discovery:
+        enabled: true
+        service-id: CONFIG-SERVER
 
   datasource:
     url: ${DB_URL}
@@ -58,14 +64,14 @@ jwt:
 
 eureka:
   instance:
-    instance-id: ${spring.application.name}:${spring.application.instance_id:${random.value}}
+    instance-id: ${spring.application.name}:${spring.cloud.client.ip-address}:${server.port}
     prefer-ip-address: true
   client:
     enabled: ${EUREKA_ENABLED:true}
     register-with-eureka: true
     fetch-registry: true
     service-url:
-      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka/}
+      defaultZone: ${EUREKA_SERVER_URL:http://34.50.50.170:8761/eureka/}
 
 topics:
   reservation:
