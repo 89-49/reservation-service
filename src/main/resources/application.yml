@@ -64,8 +64,9 @@ jwt:
 
 eureka:
   instance:
-    instance-id: ${spring.application.name}:${spring.cloud.client.ip-address}:${server.port}
     prefer-ip-address: true
+    ip-address: ${spring.cloud.client.ip-address:${SERVER_IP:localhost}}
+    instance-id: ${spring.cloud.client.ip-address:${SERVER_IP:localhost}}:${spring.application.name}:${server.port}
   client:
     enabled: ${EUREKA_ENABLED:true}
     register-with-eureka: true
