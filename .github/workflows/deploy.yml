@@ -60,8 +60,6 @@ jobs:
 
               cd ~/app
 
-              docker-compose down --remove-orphans
-
               if [ ! -f .env ]; then
                 echo '.env file is missing!'
                 exit 1
@@ -75,6 +73,7 @@ jobs:
                 exit 1
               fi
 
+              docker-compose down --remove-orphans
               docker-compose config >/dev/null
               docker-compose up -d --build --force-recreate
 
