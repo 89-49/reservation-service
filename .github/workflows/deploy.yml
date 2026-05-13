@@ -80,6 +80,8 @@ jobs:
                 exit 1
               fi
 
+              echo \"Deploying reservation-service as SERVER_IP=\$SERVER_IP SERVER_PORT=\$SERVER_PORT\"
+
               docker-compose down --remove-orphans
               docker-compose config >/dev/null
               docker-compose up -d --build --force-recreate

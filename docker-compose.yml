@@ -10,6 +10,11 @@ services:
         - GPR_TOKEN=${GPR_TOKEN}
     environment:
       - "SERVER_PORT=${SERVER_PORT}"
+      - "EUREKA_INSTANCE_PREFER_IP_ADDRESS=true"
+      - "EUREKA_INSTANCE_IP_ADDRESS=${SERVER_IP:?SERVER_IP is required}"
+      - "EUREKA_INSTANCE_HOSTNAME=${SERVER_IP:?SERVER_IP is required}"
+      - "EUREKA_INSTANCE_INSTANCE_ID=${SERVER_IP:?SERVER_IP is required}:reservation-service:${SERVER_PORT}"
+      - "EUREKA_INSTANCE_NON_SECURE_PORT=${SERVER_PORT}"
       - "DB_URL=jdbc:postgresql://reservation-db:5432/${DB_NAME}"
       - "REDIS_HOST=reservation-redis"
       - "EUREKA_SERVER_URL=${EUREKA_SERVER_URL}"
