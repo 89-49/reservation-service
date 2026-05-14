@@ -54,10 +54,16 @@ spring:
     defer-datasource-initialization: true
 
 management:
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: http://34.64.247.238:9411/api/v2/spans # 도메인 대신 IP 권장
   endpoints:
     web:
       exposure:
-        include: health, info, refresh
+        include: health, info, refresh, prometheus
 
 jwt:
   secret: ${JWT_SECRET}
@@ -73,6 +79,7 @@ eureka:
     fetch-registry: true
     service-url:
       defaultZone: ${EUREKA_SERVER_URL:http://34.50.50.170:8761/eureka/}
+
 
 topics:
   reservation:

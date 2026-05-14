@@ -113,17 +113,16 @@ jobs:
             --format="value(status)" 2>/dev/null || echo "NOT_FOUND")
           echo "status=$STATUS" >> "$GITHUB_OUTPUT"
 
-      - name: Copy compose file
+      - name: Copy Config files
         if: steps.vm-status.outputs.status == 'RUNNING'
         run: |
           gcloud compute scp deploy/docker-compose.prod.yaml \
             "$VM_USER@$VM_NAME:/tmp/docker-compose.prod.yaml" \
-            --zone="$GCP_ZONE" \
-            --project="$GCP_PROJECT" \
-            --tunnel-through-iap \
-            --ssh-key-file=~/.ssh/google_compute_engine \
-            --scp-flag=-O \
-            --quiet
+            --zone="$GCP_ZONE" --project="$GCP_PROJECT" --tunnel-through-iap --ssh-key-file=~/.ssh/google_compute_engine --scp-flag=-O --quiet
+
+          gcloud compute scp deploy/promtail-config.yml \
+            "$VM_USER@$VM_NAME:/tmp/promtail-config.yml" \
+            --zone="$GCP_ZONE" --project="$GCP_PROJECT" --tunnel-through-iap --ssh-key-file=~/.ssh/google_compute_engine --scp-flag=-O --quiet
 
       - name: Copy Kafka truststore
         if: steps.vm-status.outputs.status == 'RUNNING'
@@ -154,6 +153,7 @@ jobs:
             --command="
               sudo chmod 755 /home/$VM_USER
               sudo mkdir -p '$WORK_DIR/ssl'
+              sudo mkdir -p '$WORK_DIR/logs'
               sudo chmod 755 '$WORK_DIR'
           
               if [ -f ~/kafka.server.truststore.jks ]; then
@@ -161,11 +161,10 @@ jobs:
               fi
           
               sudo chown -R 1000:1000 '$WORK_DIR/ssl'
+              sudo chown -R 1000:1000 '$WORK_DIR/logs'
               sudo chmod 755 '$WORK_DIR/ssl'
+              sudo chmod 777 '$WORK_DIR/logs'
               sudo chmod 644 '$WORK_DIR/ssl/kafka.server.truststore.jks'
-          
-              ls -ld '$WORK_DIR/ssl'
-              ls -l '$WORK_DIR/ssl/kafka.server.truststore.jks'
             "
 
       - name: Deploy and verify
@@ -188,15 +187,12 @@ jobs:
 
               mkdir -p '$WORK_DIR'
               [ -f /tmp/docker-compose.prod.yaml ] && mv /tmp/docker-compose.prod.yaml '$WORK_DIR/docker-compose.prod.yaml'
+              [ -f /tmp/promtail-config.yml ] && mv /tmp/promtail-config.yml '$WORK_DIR/promtail-config.yml'
               cd '$WORK_DIR'
 
-              find . -mindepth 1 -maxdepth 1 ! -name '.env' ! -name 'ssl' ! -name 'docker-compose.prod.yaml' -exec rm -rf {} +
+              find . -mindepth 1 -maxdepth 1 ! -name '.env' ! -name 'ssl' ! -name 'logs' ! -name 'docker-compose.prod.yaml' ! -name 'promtail-config.yml' -exec rm -rf {} +
 
               test -f .env || { exit 1; }
-
-              if [ ! -s ssl/kafka.server.truststore.jks ]; then
-                exit 1
-              fi
 
               docker network inspect pgsg-network >/dev/null 2>&1 || docker network create pgsg-network
 
@@ -213,7 +209,6 @@ jobs:
               for i in \$(seq 1 $HEALTH_RETRIES); do
                 if curl -sf http://localhost:8085/actuator/health | grep -q '\"status\":\"UP\"'; then
                   docker ps
-                  docker logs reservation-service --tail=120
                   exit 0
                 fi
                 sleep $HEALTH_INTERVAL

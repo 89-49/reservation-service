@@ -13,9 +13,11 @@ services:
       EUREKA_INSTANCE_NON_SECURE_PORT: ${SERVER_PORT:-8085}
       DB_URL: jdbc:postgresql://reservation-db:5432/${DB_NAME:-reservation_db}
       REDIS_HOST: reservation-redis
+      MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: "http://34.64.247.238:9411/api/v2/spans"
       KAFKA_SSL_PATH: /app/ssl/kafka.server.truststore.jks
     volumes:
       - ./ssl:/app/ssl:ro
+      - ./logs:/app/logs
     ports:
       - "${SERVER_PORT:-8085}:${SERVER_PORT:-8085}"
     depends_on:
@@ -23,6 +25,16 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    networks:
+      - pgsg-network
+
+  promtail:
+    image: grafana/promtail:2.9.1
+    container_name: promtail
+    volumes:
+      - ./promtail-config.yml:/etc/promtail/config.yml
+      - ./logs:/logs
+    command: -config.file=/etc/promtail/config.yml
     networks:
       - pgsg-network
 
