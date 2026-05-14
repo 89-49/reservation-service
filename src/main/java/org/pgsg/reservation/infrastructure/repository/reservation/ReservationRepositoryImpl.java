@@ -101,14 +101,10 @@ public class ReservationRepositoryImpl implements ReservationRepository {
     }
 
     private BooleanExpression applyPolicyFilter(SearchPolicy policy) {
-        if (policy == null) return null;
-        if (policy.isBuyerFilter()) {
-            return reservation.get("buyerInfo").get("buyerId", UUID.class).eq(policy.accessUserId());
-        }
-        if (policy.isSellerFilter()) {
-            return reservation.get("sellerInfo").get("sellerId", UUID.class).eq(policy.accessUserId());
-        }
-        return null;
+        if (policy == null || !policy.isUserFilter()) return null;
+
+        return reservation.get("buyerInfo").get("buyerId", UUID.class).eq(policy.accessUserId())
+                .or(reservation.get("sellerInfo").get("sellerId", UUID.class).eq(policy.accessUserId()));
     }
 
     private BooleanExpression statusEq(ReservationStatus status) {

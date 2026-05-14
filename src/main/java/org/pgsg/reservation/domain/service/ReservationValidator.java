@@ -4,11 +4,11 @@ import org.pgsg.reservation.domain.model.reservation.*;
 import org.pgsg.reservation.domain.exception.*;
 import org.springframework.stereotype.Component;
 
+import java.util.Locale;
 import java.util.Objects;
 import java.util.UUID;
 
 @Component
-
 public class ReservationValidator {
 
     // 예약 생성
@@ -32,7 +32,7 @@ public class ReservationValidator {
         boolean isBuyer = reservation.getBuyerInfo() != null &&
                 Objects.equals(reservation.getBuyerInfo().getBuyerId(), userId);
 
-        boolean isAdmin = "ADMIN".equalsIgnoreCase(role);
+        boolean isAdmin = isAdminRole(normalizeRole(role));
 
         if (!isBuyer && !isAdmin) {
             throw new ReservationException(ReservationErrorCode.UNAUTHORIZED_ACCESS);
@@ -46,8 +46,8 @@ public class ReservationValidator {
         }
 
         // 권한 검증: 관리자,SYSTEM만 허용함
-        String normalizedRole = role == null ? "" : role.trim();
-        boolean isAdmin = "ADMIN".equalsIgnoreCase(normalizedRole);
+        String normalizedRole = normalizeRole(role);
+        boolean isAdmin = isAdminRole(normalizedRole);
         boolean isSystem = "SYSTEM".equalsIgnoreCase(normalizedRole);
         if (!isAdmin && !isSystem) {
             throw new ReservationException(ReservationErrorCode.UNAUTHORIZED_ACCESS);
@@ -66,7 +66,7 @@ public class ReservationValidator {
         boolean isSeller = reservation.getSellerInfo() != null &&
                 Objects.equals(reservation.getSellerInfo().getSellerId(), userId);
 
-        boolean isAdmin = "ADMIN".equalsIgnoreCase(role);
+        boolean isAdmin = isAdminRole(normalizeRole(role));
 
         if (!isSeller && !isAdmin) {
             throw new ReservationException(ReservationErrorCode.UNAUTHORIZED_ACCESS);
@@ -88,5 +88,18 @@ public class ReservationValidator {
     // 본인 상품 예약 금지 규칙
     private boolean isSamePerson(BuyerInfo buyer, SellerInfo seller) {
         return buyer.getBuyerId().equals(seller.getSellerId());
+    }
+
+    private String normalizeRole(String role) {
+        if (role == null) return "";
+        String upperRole = role.trim().toUpperCase(Locale.ROOT);
+        if (upperRole.startsWith("ROLE_")) {
+            return upperRole.substring(5).trim();
+        }
+        return upperRole;
+    }
+
+    private boolean isAdminRole(String normalizedRole) {
+        return "ADMIN".equals(normalizedRole) || "MANAGER".equals(normalizedRole) || "MASTER".equals(normalizedRole);
     }
 }
