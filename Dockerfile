@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1.7
+
 # 빌드 단계
 FROM eclipse-temurin:21-jdk-alpine AS build
 WORKDIR /app
@@ -14,7 +16,11 @@ RUN dos2unix gradlew && chmod +x gradlew
 # 빌드 실행
 ARG GPR_USER
 ARG GPR_TOKEN
-RUN ./gradlew clean bootJar -x test -Pgpr.user=${GPR_USER} -Pgpr.key=${GPR_TOKEN}
+RUN --mount=type=secret,id=GPR_USER,required=false \
+    --mount=type=secret,id=GPR_TOKEN,required=false \
+    GPR_USER_VALUE="$(cat /run/secrets/GPR_USER 2>/dev/null || echo "${GPR_USER}")" && \
+    GPR_TOKEN_VALUE="$(cat /run/secrets/GPR_TOKEN 2>/dev/null || echo "${GPR_TOKEN}")" && \
+    ./gradlew clean bootJar -x test -Pgpr.user="${GPR_USER_VALUE}" -Pgpr.key="${GPR_TOKEN_VALUE}"
 
 # 실행 단계
 FROM eclipse-temurin:21-jre-alpine
@@ -28,7 +34,7 @@ COPY --from=build /app/build/libs/*-SNAPSHOT.jar app.jar
 
 # SSL 인증서 복사 (물리 경로 확보)
 RUN mkdir -p /app/ssl
-COPY --from=build /app/src/main/resources/ssl/*.jks /app/ssl/
+COPY --from=build /app/src/main/resources/ssl/ /app/ssl/
 
 # 권한 설정
 RUN chown -R appuser:appuser /app

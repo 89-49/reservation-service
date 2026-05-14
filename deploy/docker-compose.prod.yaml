@@ -1,18 +1,23 @@
-version: '3.8'
-
 services:
   reservation-service:
     container_name: reservation-service
-    image: ${AR_IMAGE_PATH}:${IMAGE_TAG:-latest} # AR 기반 이미지 사용
+    image: ${AR_IMAGE_PATH}:${IMAGE_TAG:-latest}
     restart: always
     env_file:
       - .env
+    environment:
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
+      EUREKA_INSTANCE_IP_ADDRESS: ${SERVER_IP}
+      EUREKA_INSTANCE_HOSTNAME: ${SERVER_IP}
+      EUREKA_INSTANCE_INSTANCE_ID: ${SERVER_IP}:reservation-service:${SERVER_PORT:-8085}
+      EUREKA_INSTANCE_NON_SECURE_PORT: ${SERVER_PORT:-8085}
+      DB_URL: jdbc:postgresql://reservation-db:5432/${DB_NAME:-reservation_db}
+      REDIS_HOST: reservation-redis
+      KAFKA_SSL_PATH: /app/ssl/kafka.server.truststore.jks
     volumes:
-      # 서버의 /opt/reservation-service/ssl 폴더를 컨테이너 내부로 연결
       - ./ssl:/app/ssl:ro
     ports:
       - "${SERVER_PORT:-8085}:${SERVER_PORT:-8085}"
-      - "8081:8081" # 헬스체크용 포트
     depends_on:
       db:
         condition: service_healthy
