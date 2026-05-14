@@ -114,9 +114,26 @@ jobs:
                 exit 1
               fi
 
-              echo \"Deploying reservation-service as SERVER_IP=\$SERVER_IP SERVER_PORT=\$SERVER_PORT\"
+              if ! grep -Eq '^SERVER_IP=[^[:space:]]+' .env; then
+                echo 'SERVER_IP is required in .env for deployment.'
+                exit 1
+              fi
+
+              if ! grep -Eq '^SERVER_PORT=[0-9]+' .env; then
+                echo 'SERVER_PORT is required in .env for deployment.'
+                exit 1
+              fi
+
+              deploy_server_ip=\$(grep -E '^SERVER_IP=' .env | tail -n 1 | cut -d= -f2-)
+              deploy_server_port=\$(grep -E '^SERVER_PORT=' .env | tail -n 1 | cut -d= -f2-)
+              echo \"Deploying reservation-service as SERVER_IP=\$deploy_server_ip SERVER_PORT=\$deploy_server_port\"
 
               docker-compose down --remove-orphans
+              docker system df
+              docker builder prune -af || true
+              docker image prune -af || true
+              docker container prune -f || true
+              docker system df
               docker-compose config >/dev/null
               docker-compose up -d --build --force-recreate
 
