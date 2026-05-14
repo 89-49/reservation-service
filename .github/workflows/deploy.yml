@@ -126,6 +126,40 @@ jobs:
             --scp-flag=-O \
             --quiet
 
+      - name: Copy Kafka truststore
+        if: steps.vm-status.outputs.status == 'RUNNING'
+        env:
+          KAFKA_TRUSTSTORE_JKS_BASE64: ${{ secrets.KAFKA_TRUSTSTORE_JKS_BASE64 }}
+        run: |
+          if [ -z "$KAFKA_TRUSTSTORE_JKS_BASE64" ]; then
+            echo "KAFKA_TRUSTSTORE_JKS_BASE64 is not set."
+            exit 0
+          fi
+
+          printf '%s' "$KAFKA_TRUSTSTORE_JKS_BASE64" | base64 -d > kafka.server.truststore.jks
+
+          gcloud compute scp kafka.server.truststore.jks \
+            "$VM_USER@$VM_NAME:/tmp/kafka.server.truststore.jks" \
+            --zone="$GCP_ZONE" \
+            --project="$GCP_PROJECT" \
+            --tunnel-through-iap \
+            --ssh-key-file=~/.ssh/google_compute_engine \
+            --scp-flag=-O \
+            --quiet
+
+          gcloud compute ssh "$VM_USER@$VM_NAME" \
+            --zone="$GCP_ZONE" \
+            --project="$GCP_PROJECT" \
+            --tunnel-through-iap \
+            --ssh-key-file=~/.ssh/google_compute_engine \
+            --quiet \
+            --command="
+              mkdir -p '$WORK_DIR/ssl'
+              sudo chown -R '$VM_USER:$VM_USER' '$WORK_DIR/ssl'
+              mv /tmp/kafka.server.truststore.jks '$WORK_DIR/ssl/kafka.server.truststore.jks'
+              chmod 600 '$WORK_DIR/ssl/kafka.server.truststore.jks'
+            "
+
       - name: Deploy and verify
         if: steps.vm-status.outputs.status == 'RUNNING'
         env:
@@ -148,28 +182,26 @@ jobs:
               mv /tmp/docker-compose.prod.yaml '$WORK_DIR/docker-compose.prod.yaml'
               cd '$WORK_DIR'
 
+              find . -mindepth 1 -maxdepth 1 ! -name '.env' ! -name 'ssl' ! -name 'docker-compose.prod.yaml' -exec rm -rf {} +
+
               test -f .env || { echo '.env not found in $WORK_DIR'; exit 1; }
 
-              if ! grep -Eq '^SERVER_IP=[^[:space:]]+' .env; then
-                echo 'SERVER_IP is required in .env for deployment.'
+              if [ ! -s ssl/kafka.server.truststore.jks ]; then
+                echo 'Kafka truststore is missing in $WORK_DIR/ssl'
                 exit 1
               fi
 
-              if ! grep -Eq '^SERVER_PORT=[0-9]+' .env; then
-                echo 'SERVER_PORT is required in .env for deployment.'
-                exit 1
-              fi
-
-              if ! docker network inspect pgsg-network >/dev/null 2>&1; then
-                docker network create pgsg-network
-              fi
+              docker network inspect pgsg-network >/dev/null 2>&1 || docker network create pgsg-network
 
               docker image prune -af || true
-              docker container prune -f || true
+          
+              COMPOSE_CMD='docker compose'
+              if ! \$COMPOSE_CMD version >/dev/null 2>&1; then
+                COMPOSE_CMD='docker-compose'
+              fi
 
-              IMAGE_TAG='$IMAGE_TAG' AR_IMAGE_PATH='$AR_IMAGE_PATH' docker-compose -f docker-compose.prod.yaml config >/dev/null
-              IMAGE_TAG='$IMAGE_TAG' AR_IMAGE_PATH='$AR_IMAGE_PATH' docker-compose -f docker-compose.prod.yaml pull
-              IMAGE_TAG='$IMAGE_TAG' AR_IMAGE_PATH='$AR_IMAGE_PATH' docker-compose -f docker-compose.prod.yaml up -d
+              IMAGE_TAG='$IMAGE_TAG' AR_IMAGE_PATH='$AR_IMAGE_PATH' \$COMPOSE_CMD -f docker-compose.prod.yaml pull
+              IMAGE_TAG='$IMAGE_TAG' AR_IMAGE_PATH='$AR_IMAGE_PATH' \$COMPOSE_CMD -f docker-compose.prod.yaml up -d
 
               for i in \$(seq 1 $HEALTH_RETRIES); do
                 if curl -sf http://localhost:8085/actuator/health | grep -q '\"status\":\"UP\"'; then
@@ -184,6 +216,5 @@ jobs:
 
               docker ps
               docker logs reservation-service --tail=200
-              echo 'Actuator health check failed.'
               exit 1
             "
