@@ -13,7 +13,7 @@ services:
       EUREKA_INSTANCE_NON_SECURE_PORT: ${SERVER_PORT:-8085}
       DB_URL: jdbc:postgresql://reservation-db:5432/${DB_NAME:-reservation_db}
       REDIS_HOST: reservation-redis
-      MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: "http://34.64.247.238:9411/api/v2/spans"
+      MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: "http://34.47.69.9:3100/api/v2/spans"
       KAFKA_SSL_PATH: /app/ssl/kafka.server.truststore.jks
     volumes:
       - ./ssl:/app/ssl:ro

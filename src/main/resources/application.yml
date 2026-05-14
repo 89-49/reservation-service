@@ -59,7 +59,7 @@ management:
       probability: 1.0
   zipkin:
     tracing:
-      endpoint: http://34.64.247.238:9411/api/v2/spans # 도메인 대신 IP 권장
+      endpoint: http://34.47.69.9:9411/api/v2/spans
   endpoints:
     web:
       exposure:
