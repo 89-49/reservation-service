@@ -167,9 +167,9 @@ jobs:
               docker image prune -af || true
               docker container prune -f || true
 
-              IMAGE_TAG='$IMAGE_TAG' AR_IMAGE_PATH='$AR_IMAGE_PATH' docker compose -f docker-compose.prod.yaml config >/dev/null
-              IMAGE_TAG='$IMAGE_TAG' AR_IMAGE_PATH='$AR_IMAGE_PATH' docker compose -f docker-compose.prod.yaml pull
-              IMAGE_TAG='$IMAGE_TAG' AR_IMAGE_PATH='$AR_IMAGE_PATH' docker compose -f docker-compose.prod.yaml up -d
+              IMAGE_TAG='$IMAGE_TAG' AR_IMAGE_PATH='$AR_IMAGE_PATH' docker-compose -f docker-compose.prod.yaml config >/dev/null
+              IMAGE_TAG='$IMAGE_TAG' AR_IMAGE_PATH='$AR_IMAGE_PATH' docker-compose -f docker-compose.prod.yaml pull
+              IMAGE_TAG='$IMAGE_TAG' AR_IMAGE_PATH='$AR_IMAGE_PATH' docker-compose -f docker-compose.prod.yaml up -d
 
               for i in \$(seq 1 $HEALTH_RETRIES); do
                 if curl -sf http://localhost:8085/actuator/health | grep -q '\"status\":\"UP\"'; then
