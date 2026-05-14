@@ -44,9 +44,6 @@ public class ReservationSecurityConfig {
                                 "/error"
                         ).permitAll()
 
-                        // 예약 서비스의 핵심 API (Gateway에서 인증된 사용자만 접근)
-                        .requestMatchers("/api/v1/reservations/**").permitAll()
-
                         // 나머지는 인증 필요
                         .anyRequest().authenticated()
                 )
