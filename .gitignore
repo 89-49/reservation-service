@@ -7,7 +7,7 @@ HELP.md
 !**/src/main/**/build/
 !**/src/test/**/build/
 .env
-.env.local
+.env.*
 
 # QueryDSL
 src/main/generated/
