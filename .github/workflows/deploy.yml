@@ -54,6 +54,7 @@ jobs:
             done
           }
 
+          rm -rf deploy
           mkdir -p deploy
           cp -r src deploy/
           cp build.gradle settings.gradle Dockerfile docker-compose.yml deploy/
@@ -63,9 +64,9 @@ jobs:
             --tunnel-through-iap \
             --ssh-key-file=~/.ssh/google_compute_engine \
             --quiet \
-            --command="mkdir -p ~/app && rm -rf ~/app/src ~/app/build"
+            --command="mkdir -p /home/zsx1397/app && rm -rf /home/zsx1397/app/src /home/zsx1397/app/build"
 
-          retry gcloud compute scp --recurse ./deploy/* zsx1397@reservation-service:~/app \
+          retry gcloud compute scp --recurse ./deploy/* zsx1397@reservation-service:/home/zsx1397/app \
             --zone=asia-northeast3-a \
             --tunnel-through-iap \
             --ssh-key-file=~/.ssh/google_compute_engine \
