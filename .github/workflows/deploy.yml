@@ -34,9 +34,18 @@ jobs:
           ssh-keygen -y -f ~/.ssh/google_compute_engine > ~/.ssh/google_compute_engine.pub
           ssh-keyscan -H 34.64.247.238 >> ~/.ssh/known_hosts
 
-      # Sync deploy files to VM
-      - name: 'Sync Project to VM'
+      - name: Deploy
         run: |
+          VM="zsx1397@reservation-service"
+          APP_DIR="/home/zsx1397/app"
+          ARCHIVE="reservation-service-deploy.tar.gz"
+          GCLOUD_ARGS=(
+            --zone=asia-northeast3-a
+            --tunnel-through-iap
+            --ssh-key-file=~/.ssh/google_compute_engine
+            --quiet
+          )
+
           retry() {
             local attempts=5
             local delay=10
@@ -52,93 +61,68 @@ jobs:
               sleep "$delay"
               n=$((n + 1))
             done
+          }
+
+          remote() {
+            retry gcloud compute ssh "$VM" "${GCLOUD_ARGS[@]}" --command "$1"
+          }
+
+          copy_to_vm() {
+            retry gcloud compute scp "$1" "$VM:$2" "${GCLOUD_ARGS[@]}" --scp-flag=-O
           }
 
           rm -rf deploy
           mkdir -p deploy
           cp -r src deploy/
           cp build.gradle settings.gradle Dockerfile docker-compose.yml deploy/
+          tar -czf "$ARCHIVE" -C deploy .
 
-          retry gcloud compute ssh zsx1397@reservation-service \
-            --zone=asia-northeast3-a \
-            --tunnel-through-iap \
-            --ssh-key-file=~/.ssh/google_compute_engine \
-            --quiet \
-            --command="mkdir -p /home/zsx1397/app && rm -rf /home/zsx1397/app/src /home/zsx1397/app/build"
+          remote "mkdir -p $APP_DIR && rm -rf $APP_DIR/src $APP_DIR/build /tmp/$ARCHIVE"
+          copy_to_vm "$ARCHIVE" "/tmp/$ARCHIVE"
+          remote "tar -xzf /tmp/$ARCHIVE -C $APP_DIR && rm -f /tmp/$ARCHIVE"
 
-          retry gcloud compute scp --recurse ./deploy/* zsx1397@reservation-service:/home/zsx1397/app \
-            --zone=asia-northeast3-a \
-            --tunnel-through-iap \
-            --ssh-key-file=~/.ssh/google_compute_engine \
-            --quiet
+          remote '
+            set -e
 
-      # Run Docker Compose on VM
-      - name: 'Docker Compose Up'
-        run: |
-          retry() {
-            local attempts=5
-            local delay=10
-            local n=1
+            cd /home/zsx1397/app
 
-            until "$@"; do
-              if [ "$n" -ge "$attempts" ]; then
-                echo "Command failed after $attempts attempts: $*"
-                return 1
-              fi
+            if [ ! -f .env ]; then
+              echo ".env file is missing!"
+              exit 1
+            fi
 
-              echo "Command failed. Retrying in ${delay}s... ($n/$attempts)"
-              sleep "$delay"
-              n=$((n + 1))
-            done
-          }
+            invalid_env_lines=$(grep -nEv "^[[:space:]]*(#|$|[A-Za-z_][A-Za-z0-9_]*=)" .env || true)
+            if [ -n "$invalid_env_lines" ]; then
+              echo ".env has lines that Docker env_file cannot parse."
+              echo "Use KEY=value only. Do not use export KEY=value or keys with spaces."
+              echo "$invalid_env_lines"
+              exit 1
+            fi
 
-          retry gcloud compute ssh zsx1397@reservation-service \
-            --zone=asia-northeast3-a \
-            --tunnel-through-iap \
-            --ssh-key-file=~/.ssh/google_compute_engine \
-            --quiet \
-            --command="
-              set -e
+            if ! grep -Eq "^SERVER_IP=[^[:space:]]+" .env; then
+              echo "SERVER_IP is required in .env for deployment."
+              exit 1
+            fi
 
-              cd ~/app
+            if ! grep -Eq "^SERVER_PORT=[0-9]+" .env; then
+              echo "SERVER_PORT is required in .env for deployment."
+              exit 1
+            fi
 
-              if [ ! -f .env ]; then
-                echo '.env file is missing!'
-                exit 1
-              fi
+            deploy_server_ip=$(grep -E "^SERVER_IP=" .env | tail -n 1 | cut -d= -f2-)
+            deploy_server_port=$(grep -E "^SERVER_PORT=" .env | tail -n 1 | cut -d= -f2-)
+            echo "Deploying reservation-service as SERVER_IP=$deploy_server_ip SERVER_PORT=$deploy_server_port"
 
-              invalid_env_lines=\$(grep -nEv '^[[:space:]]*(#|$|[A-Za-z_][A-Za-z0-9_]*=)' .env || true)
-              if [ -n \"\$invalid_env_lines\" ]; then
-                echo '.env has lines that Docker env_file cannot parse.'
-                echo 'Use KEY=value only. Do not use export KEY=value or keys with spaces.'
-                echo \"\$invalid_env_lines\"
-                exit 1
-              fi
+            docker-compose down --remove-orphans
+            docker system df
+            docker builder prune -af || true
+            docker image prune -af || true
+            docker container prune -f || true
+            docker system df
+            docker-compose config >/dev/null
+            docker-compose up -d --build --force-recreate
 
-              if ! grep -Eq '^SERVER_IP=[^[:space:]]+' .env; then
-                echo 'SERVER_IP is required in .env for deployment.'
-                exit 1
-              fi
-
-              if ! grep -Eq '^SERVER_PORT=[0-9]+' .env; then
-                echo 'SERVER_PORT is required in .env for deployment.'
-                exit 1
-              fi
-
-              deploy_server_ip=\$(grep -E '^SERVER_IP=' .env | tail -n 1 | cut -d= -f2-)
-              deploy_server_port=\$(grep -E '^SERVER_PORT=' .env | tail -n 1 | cut -d= -f2-)
-              echo \"Deploying reservation-service as SERVER_IP=\$deploy_server_ip SERVER_PORT=\$deploy_server_port\"
-
-              docker-compose down --remove-orphans
-              docker system df
-              docker builder prune -af || true
-              docker image prune -af || true
-              docker container prune -f || true
-              docker system df
-              docker-compose config >/dev/null
-              docker-compose up -d --build --force-recreate
-
-              sleep 10
-              docker ps
-              docker logs reservation-service
-          "
+            sleep 10
+            docker ps
+            docker logs reservation-service
+          '
