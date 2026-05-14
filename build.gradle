@@ -72,7 +72,7 @@ dependencies {
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.13.0'
 
     // [Common Module]
-    implementation 'org.pgsg:common:0.2.6-SNAPSHOT'
+    implementation 'org.pgsg:common:0.3.2-SNAPSHOT'
 
     // [Spring Starters]
     implementation 'org.springframework.boot:spring-boot-starter-web'
