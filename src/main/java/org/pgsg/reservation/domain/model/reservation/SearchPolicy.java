@@ -4,32 +4,19 @@ import java.util.UUID;
 
 public record SearchPolicy(
         UUID accessUserId,
-        boolean isBuyerFilter,
-        boolean isSellerFilter
+        boolean isUserFilter
 ) {
     public SearchPolicy {
-        if (isBuyerFilter && isSellerFilter) {
-            throw new IllegalArgumentException("Filter flags are mutually exclusive.");
-        }
-
-        if ((isBuyerFilter || isSellerFilter) && accessUserId == null) {
-            throw new IllegalArgumentException("accessUserId is required for buyer/seller filter.");
-        }
-
-        if (!isBuyerFilter && !isSellerFilter && accessUserId != null) {
-            throw new IllegalArgumentException("accessUserId must be null when no filter is applied.");
+        if (isUserFilter && accessUserId == null) {
+            throw new IllegalArgumentException("accessUserId is required for user filter.");
         }
     }
 
-    public static SearchPolicy buyer(UUID userId) {
-        return new SearchPolicy(userId, true, false);
-    }
-
-    public static SearchPolicy seller(UUID userId) {
-        return new SearchPolicy(userId, false, true);
+    public static SearchPolicy user(UUID userId) {
+        return new SearchPolicy(userId, true);
     }
 
     public static SearchPolicy all() {
-        return new SearchPolicy(null, false, false);
+        return new SearchPolicy(null, false);
     }
 }

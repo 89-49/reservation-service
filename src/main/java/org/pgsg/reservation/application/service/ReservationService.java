@@ -79,9 +79,8 @@ public class ReservationService {
     // 예약 목록 조회
     @Transactional(readOnly = true)
     @Cacheable(value = "reservations",
-            key = "{" +
-                    "#userId, #role, #query.sellerName(), #query.buyerName(), #query.productName(), " +
-                    "#query.status(), #query.productId(), #pageable.pageNumber, #pageable.pageSize, #pageable.sort}")
+            key = "{#userId, #role, #query.sellerName(), #query.buyerName(), #query.productName(), " +
+                    "#query.status(), #query.productId(), #pageable.pageNumber, #pageable.pageSize}")
     public Page<ReservationSearchResult> getSearchReservations(
             UUID userId,
             String role,

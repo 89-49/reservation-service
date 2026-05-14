@@ -1,7 +1,6 @@
 package org.pgsg.reservation.domain.service;
 
 import lombok.RequiredArgsConstructor;
-import org.pgsg.common.exception.ErrorCode;
 import org.pgsg.reservation.domain.exception.ReservationErrorCode;
 import org.pgsg.reservation.domain.exception.ReservationException;
 import org.pgsg.reservation.domain.model.reservation.*;
@@ -11,7 +10,6 @@ import org.pgsg.reservation.domain.model.reservationhistory.ReservationHistory;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-
 
 @Service
 @RequiredArgsConstructor
@@ -37,21 +35,17 @@ public class ReservationDomainService {
      * 권한에 따른 조회 범위를 검증하고 정책(Policy)을 결정
      */
     public SearchPolicy getReservations(UUID userId, String role) {
-        // 권한 데이터가 비어있는지 검증
         reservationValidator.validateSearchRequest(userId, role);
 
-        // 역할에 따른 필터링
-        String normalizedRole = role.trim().toUpperCase(Locale.ROOT);
-        if ("ADMIN".equals(normalizedRole)) {
-            return new SearchPolicy(null, false, false);
+        String normalizedRole = normalizeRole(role);
+
+        // MASTER, MANAGER는 전체 조회
+        if (isAdminRole(normalizedRole)) {
+            return SearchPolicy.all();
         }
-        if ("SELLER".equals(normalizedRole)) {
-            return new SearchPolicy(userId, false, true);
-        }
-        if ("BUYER".equals(normalizedRole)) {
-            return new SearchPolicy(userId, true, false);
-        }
-        throw new ReservationException(ReservationErrorCode.UNAUTHORIZED_ACCESS);
+
+        // 그 외 모든 일반 사용자(USER 등)는 본인 것만 조회 (판매 + 구매)
+        return SearchPolicy.user(userId);
     }
 
     /**
@@ -62,13 +56,11 @@ public class ReservationDomainService {
         // 정책 획득
         SearchPolicy policy = this.getReservations(userId, role);
 
-        // 관리자 판단 로직
-        boolean isAdmin = !policy.isBuyerFilter() && !policy.isSellerFilter();
-
-        if (!isAdmin) {
+        if (policy.isUserFilter()) {
             // 본인 확인 (구매자 혹은 판매자 본인인지 체크)
-            boolean isOwner = reservation.getBuyerInfo().getBuyerId().equals(userId) ||
-                    reservation.getSellerInfo().getSellerId().equals(userId);
+            // 구매자 정보가 있을 때만 비교하도록 null 체크 추가 (안정성)
+            boolean isOwner = (reservation.getBuyerInfo() != null && reservation.getBuyerInfo().getBuyerId().equals(userId)) ||
+                    (reservation.getSellerInfo() != null && reservation.getSellerInfo().getSellerId().equals(userId));
 
             if (!isOwner) {
                 throw new RuntimeException("해당 예약을 조회할 권한이 없습니다.");
@@ -200,7 +192,7 @@ public class ReservationDomainService {
 
         // 관리자 권한 및 취소 가능 상태인지 확인
         reservationValidator.validateSearchRequest(adminId, role);
-        if (!"ADMIN".equalsIgnoreCase(role == null ? null : role.trim())) {
+        if (!isAdminRole(normalizeRole(role))) {
             throw new ReservationException(ReservationErrorCode.UNAUTHORIZED_ACCESS);
         }
         reservationValidator.validateCommonCancel(reservation, adminId);
@@ -241,7 +233,7 @@ public class ReservationDomainService {
     public ReservationHistory completeReservation(Reservation reservation, UUID userId ,String role) {
         // 권한 검증 로직
         boolean isSeller = reservation.getSellerInfo() != null && Objects.equals(reservation.getSellerInfo().getSellerId(), userId);
-        boolean isAdmin = "ADMIN".equalsIgnoreCase(role);
+        boolean isAdmin = isAdminRole(normalizeRole(role));
         if (!isAdmin && !isSeller) {
             throw new ReservationException(ReservationErrorCode.UNAUTHORIZED_ACCESS);
         }
@@ -268,8 +260,7 @@ public class ReservationDomainService {
      */
     public ReservationHistory confirmTrade(Reservation reservation, UUID userId, String role) {
         // 규칙: 오직 ADMIN(시스템 포함)만 거래 확정을 할 수 있다.
-        String normalizedRole = role != null ? role.trim().toUpperCase(Locale.ROOT) : "";
-        if (!"ADMIN".equals(normalizedRole)) {
+        if (!isAdminRole(normalizeRole(role))) {
             throw new ReservationException(ReservationErrorCode.UNAUTHORIZED_ACCESS, "관리자만 거래를 확정할 수 있습니다.");
         }
 
@@ -289,8 +280,17 @@ public class ReservationDomainService {
         );
     }
 
-    private boolean isAdmin(String role) {
-        return "ADMIN".equals(role);
+    private String normalizeRole(String role) {
+        if (role == null) return "";
+        String upperRole = role.trim().toUpperCase(Locale.ROOT);
+        if (upperRole.startsWith("ROLE_")) {
+            return upperRole.substring(5).trim();
+        }
+        return upperRole;
+    }
+
+    private boolean isAdminRole(String normalizedRole) {
+        return "ADMIN".equals(normalizedRole) || "MANAGER".equals(normalizedRole) || "MASTER".equals(normalizedRole);
     }
 
     /**
