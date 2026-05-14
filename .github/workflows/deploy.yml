@@ -2,7 +2,7 @@ name: Deploy Reservation Service
 
 on:
   push:
-    branches: [ "main","dev" ]
+    branches: [ "main", "dev" ]
   workflow_dispatch:
 
 env:
@@ -152,18 +152,17 @@ jobs:
             --ssh-key-file=~/.ssh/google_compute_engine \
             --quiet \
             --command="
+              sudo chmod 755 /home/$VM_USER
               sudo mkdir -p '$WORK_DIR/ssl'
+              sudo chmod 755 '$WORK_DIR'
           
               if [ -f ~/kafka.server.truststore.jks ]; then
                 sudo mv ~/kafka.server.truststore.jks '$WORK_DIR/ssl/kafka.server.truststore.jks'
-              elif [ -f /tmp/kafka.server.truststore.jks ]; then
-                sudo mv /tmp/kafka.server.truststore.jks '$WORK_DIR/ssl/kafka.server.truststore.jks'
               fi
           
+              sudo chown -R 1000:1000 '$WORK_DIR/ssl'
               sudo chmod 755 '$WORK_DIR/ssl'
               sudo chmod 644 '$WORK_DIR/ssl/kafka.server.truststore.jks'
-          
-              sudo chown -R $VM_USER:docker '$WORK_DIR/ssl'
           
               ls -ld '$WORK_DIR/ssl'
               ls -l '$WORK_DIR/ssl/kafka.server.truststore.jks'
