@@ -93,7 +93,6 @@ dependencies {
     implementation 'org.redisson:redisson-spring-boot-starter:3.51.0'
 
     // [Observability]
-    implementation 'io.micrometer:micrometer-tracing-bridge-otel'
     implementation 'io.opentelemetry:opentelemetry-exporter-zipkin'
 
     // [Logback]
