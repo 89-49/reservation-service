@@ -158,9 +158,11 @@ jobs:
               elif [ -f /tmp/kafka.server.truststore.jks ]; then
                 mv /tmp/kafka.server.truststore.jks '$WORK_DIR/ssl/kafka.server.truststore.jks'
               fi
-              sudo chown -R '$VM_USER:$VM_USER' '$WORK_DIR/ssl'
+              sudo chown -R $VM_USER:docker '$WORK_DIR/ssl'
               chmod 755 '$WORK_DIR/ssl'
               chmod 644 '$WORK_DIR/ssl/kafka.server.truststore.jks'
+          
+              ls -l '$WORK_DIR/ssl/kafka.server.truststore.jks'
             "
 
       - name: Deploy and verify
