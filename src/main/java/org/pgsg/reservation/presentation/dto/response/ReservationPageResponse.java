@@ -1,10 +1,15 @@
 package org.pgsg.reservation.presentation.dto.response;
 
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;
 import java.util.List;
 
 @Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED, force = true)
+@AllArgsConstructor
 public class ReservationPageResponse<T> {
     private final List<T> content;
     private final int pageNumber;

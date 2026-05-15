@@ -132,9 +132,7 @@ public class ReservationService {
     // 예약 신청
     @Transactional
     @Caching(evict = {
-            // 해당 예약의 상세 정보 캐시만 삭제
-            @CacheEvict(value = "reservationDetail", key = "#command.reservationId()"),
-            // 목록은 순서나 데이터가 변했을 수 있으므로 전체 삭제
+            @CacheEvict(value = "reservationDetail", allEntries = true),
             @CacheEvict(value = "reservations", allEntries = true)
     })
     public ReservationCandidateInfo applyReservation(ReservationApplyCommand command) {
@@ -169,7 +167,7 @@ public class ReservationService {
     // 구매자 취소 처리 로직
     @Transactional
     @Caching(evict = {
-            @CacheEvict(value = "reservationDetail", key = "#command.reservationId()"),
+            @CacheEvict(value = "reservationDetail", allEntries = true),
             @CacheEvict(value = "reservations", allEntries = true)
     })
     public ReservationStateInfo cancelByBuyer(ReservationCancelCommand command) {
@@ -190,7 +188,7 @@ public class ReservationService {
     // 추후 결제 시스템 연동시 트리거 발동
     @Transactional
     @Caching(evict = {
-            @CacheEvict(value = "reservationDetail", key = "#command.reservationId()"),
+            @CacheEvict(value = "reservationDetail", allEntries = true),
             @CacheEvict(value = "reservations", allEntries = true)
     })
     public ReservationStateInfo confirmPayment(ReservationConfirmCommand command) {
@@ -214,7 +212,7 @@ public class ReservationService {
     // 판매자 취소 로직
     @Transactional
     @Caching(evict = {
-            @CacheEvict(value = "reservationDetail", key = "#command.reservationId()"),
+            @CacheEvict(value = "reservationDetail", allEntries = true),
             @CacheEvict(value = "reservations", allEntries = true)
     })
     public ReservationStateInfo cancelBySeller(ReservationCancelCommand command) {
@@ -236,7 +234,7 @@ public class ReservationService {
     // 예약 만료
     @Transactional
     @Caching(evict = {
-            @CacheEvict(value = "reservationDetail", key = "#command.reservationId()"),
+            @CacheEvict(value = "reservationDetail", allEntries = true),
             @CacheEvict(value = "reservations", allEntries = true)
     })
     public ReservationStateInfo expireByAdmin(ReservationExpireCommand command) {
@@ -258,7 +256,7 @@ public class ReservationService {
     // 예약 완료
     @Transactional
     @Caching(evict = {
-            @CacheEvict(value = "reservationDetail", key = "#command.reservationId()"),
+            @CacheEvict(value = "reservationDetail", allEntries = true),
             @CacheEvict(value = "reservations", allEntries = true)
     })
     public ReservationStateInfo completeReservation(ReservationConfirmCommand command) {
@@ -276,7 +274,7 @@ public class ReservationService {
     // 거래 완료
     @Transactional
     @Caching(evict = {
-            @CacheEvict(value = "reservationDetail", key = "#command.reservationId()"),
+            @CacheEvict(value = "reservationDetail", allEntries = true),
             @CacheEvict(value = "reservations", allEntries = true)
     })
     public ReservationStateInfo confirmTrade(ReservationConfirmCommand command) {

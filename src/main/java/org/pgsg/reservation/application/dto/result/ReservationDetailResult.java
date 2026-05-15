@@ -15,26 +15,22 @@ public record ReservationDetailResult(
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
-    // 내부 record로 데이터를 구조화합니다.
-    public record ProductInfo(
+    public static record ProductInfo(
             UUID productId,
             String productName,
             Integer price,
             LocalDateTime endTime
-    ) {
-    }
+    ) {}
 
-    public record SellerInfo(
+    public static record SellerInfo(
             UUID sellerId,
             String sellerName
-    ) {
-    }
+    ) {}
 
-    public record BuyerInfo(
+    public static record BuyerInfo(
             UUID buyerId,
             String buyerName
-    ) {
-    }
+    ) {}
 
     public static ReservationDetailResult from(Reservation reservation) {
         return new ReservationDetailResult(
