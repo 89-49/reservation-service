@@ -61,14 +61,14 @@ public class RedisConfig {
         // 없는 필드 무시
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
-        // 다형성 타이핑 설정
         PolymorphicTypeValidator typeValidator = BasicPolymorphicTypeValidator.builder()
+                .allowIfBaseType("org.pgsg")
                 .allowIfBaseType(Object.class)
                 .build();
 
         objectMapper.activateDefaultTyping(
                 typeValidator,
-                ObjectMapper.DefaultTyping.NON_FINAL,
+                ObjectMapper.DefaultTyping.NON_CONCRETE_AND_ARRAYS,
                 com.fasterxml.jackson.annotation.JsonTypeInfo.As.PROPERTY
         );
 
