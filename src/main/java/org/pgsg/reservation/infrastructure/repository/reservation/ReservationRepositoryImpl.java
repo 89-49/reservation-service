@@ -47,18 +47,21 @@ public class ReservationRepositoryImpl implements ReservationRepository {
 
     @Override
     @Transactional(readOnly = true)
-    public List<Reservation> findAllByStatusInAndModifiedAtBefore(
+    public List<Reservation> findAllByStatusInAndModifiedAtBeforeOrProductInfoEndTimeBefore(
             List<ReservationStatus> statuses,
-            LocalDateTime threshold
+            LocalDateTime threshold,
+            LocalDateTime now
     ){
-        if (statuses == null || statuses.isEmpty() || threshold == null) {
+        if (statuses == null || statuses.isEmpty() || threshold == null || now == null) {
             return List.of();
         }
+
         return queryFactory
                 .selectFrom(reservation)
                 .where(
-                        statusIn(statuses),
-                        modifiedAtBefore(threshold)
+                        statusIn(statuses), // 우선 대상 상태여야 함 (AND)
+                        modifiedAtBefore(threshold) // 수정 시간이 1시간 지났거나 (OR)
+                                .or(endTimeBefore(now)) // 상품 종료 시간이 지났거나
                 )
                 .fetch();
     }
@@ -147,6 +150,12 @@ public class ReservationRepositoryImpl implements ReservationRepository {
     private BooleanExpression modifiedAtBefore(LocalDateTime threshold) {
         return threshold != null
                 ? reservation.getDateTime("modifiedAt", LocalDateTime.class).before(threshold)
+                : null;
+    }
+
+    private BooleanExpression endTimeBefore(LocalDateTime now) {
+        return now != null
+                ? reservation.get("productInfo").getDateTime("endTime", LocalDateTime.class).before(now)
                 : null;
     }
 }
