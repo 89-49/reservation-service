@@ -53,16 +53,17 @@ public class ReservationDomainService {
      * 특정 사용자가 해당 예약에 접근할 수 있는지 비즈니스 규칙 검사
      */
     public void validateDetailAccess(Reservation reservation, UUID userId, String role) {
-        // 정책 획득
         SearchPolicy policy = this.getReservations(userId, role);
 
         if (policy.isUserFilter()) {
-            // 본인 확인 (구매자 혹은 판매자 본인인지 체크)
-            // 구매자 정보가 있을 때만 비교하도록 null 체크 추가 (안정성)
-            boolean isOwner = (reservation.getBuyerInfo() != null && reservation.getBuyerInfo().getBuyerId().equals(userId)) ||
-                    (reservation.getSellerInfo() != null && reservation.getSellerInfo().getSellerId().equals(userId));
+            // Objects.equals는 파라미터가 null이어도 에러를 내지 않고 false를 반환해서 안전합니다.
+            boolean isBuyer = reservation.getBuyerInfo() != null &&
+                    Objects.equals(reservation.getBuyerInfo().getBuyerId(), userId);
 
-            if (!isOwner) {
+            boolean isSeller = reservation.getSellerInfo() != null &&
+                    Objects.equals(reservation.getSellerInfo().getSellerId(), userId);
+
+            if (!isBuyer && !isSeller) {
                 throw new RuntimeException("해당 예약을 조회할 권한이 없습니다.");
             }
         }
