@@ -1,15 +1,17 @@
 package org.pgsg.reservation.infrastructure.config;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import com.fasterxml.jackson.databind.jsontype.PolymorphicTypeValidator;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -19,7 +21,9 @@ import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.geo.GeoModule;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
@@ -31,7 +35,9 @@ import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSeriali
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
+import java.io.IOException;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 
 @Configuration
@@ -49,6 +55,7 @@ public class RedisConfig {
         return new LettuceConnectionFactory(host, port);
     }
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
     @Primary
     @Bean(name = "redisObjectMapper")
     public ObjectMapper redisObjectMapper() {
@@ -58,8 +65,11 @@ public class RedisConfig {
         objectMapper.registerModule(new GeoModule());
         objectMapper.registerModule(new ParameterNamesModule());
 
-        objectMapper.addMixIn(org.springframework.data.domain.Page.class, PageMixIn.class);
-        objectMapper.addMixIn(org.springframework.data.domain.PageImpl.class, PageMixIn.class);
+        JsonDeserializer<Page> jsonPageDeserializer = new JsonPageDeserializer();
+        SimpleModule pageModule = new SimpleModule();
+        pageModule.addDeserializer((Class) Page.class, jsonPageDeserializer);
+        pageModule.addDeserializer((Class) PageImpl.class, jsonPageDeserializer);
+        objectMapper.registerModule(pageModule);
 
         objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
@@ -125,11 +135,32 @@ public class RedisConfig {
                 .build();
     }
 
-    @JsonDeserialize(as = PageImpl.class)
-    private interface PageMixIn {
-        @JsonCreator
-        void PageImpl(@JsonProperty("content") List<?> content,
-                      @JsonProperty("pageable") Pageable pageable,
-                      @JsonProperty("total") long total);
+    private static class JsonPageDeserializer extends JsonDeserializer<Page> {
+        @Override
+        public Page deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
+            ObjectMapper mapper = (ObjectMapper) p.getCodec();
+            JsonNode node = mapper.readTree(p);
+
+            JsonNode contentNode = node.get("content");
+            List<Object> content = new ArrayList<>();
+            if (contentNode != null && contentNode.isArray()) {
+                for (JsonNode element : contentNode) {
+                    content.add(mapper.treeToValue(element, Object.class));
+                }
+            }
+
+            long totalElements = 0;
+            if (node.has("totalElements")) {
+                totalElements = node.get("totalElements").asLong();
+            } else if (node.has("total")) {
+                totalElements = node.get("total").asLong();
+            }
+
+            int page = node.has("number") ? node.get("number").asInt() : 0;
+            int size = node.has("size") ? node.get("size").asInt() : (content.isEmpty() ? 10 : content.size());
+
+            Pageable pageable = PageRequest.of(page, size);
+            return new PageImpl<>(content, pageable, totalElements);
+        }
     }
 }
