@@ -46,15 +46,22 @@ public class RedisConfig {
     public ObjectMapper redisObjectMapper() {
         ObjectMapper objectMapper = new ObjectMapper();
 
+        // 날짜 모듈 및 페이징 모듈 등록
         objectMapper.registerModule(new JavaTimeModule());
         objectMapper.registerModule(new SpringDataJacksonConfiguration().pageModule());
 
+        // LocalDateTime이 [2026,5,14] 배열로 쪼개져서 직렬화되는 것을 막습니다.
+        objectMapper.disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+        // 가시성 설정
         objectMapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
         objectMapper.setVisibility(PropertyAccessor.CREATOR, JsonAutoDetect.Visibility.ANY);
         objectMapper.setVisibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY);
 
+        // 없는 필드 무시
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
+        // 다형성 타이핑 설정
         PolymorphicTypeValidator typeValidator = BasicPolymorphicTypeValidator.builder()
                 .allowIfBaseType(Object.class)
                 .build();
