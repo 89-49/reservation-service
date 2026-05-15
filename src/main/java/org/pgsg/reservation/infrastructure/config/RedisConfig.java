@@ -55,8 +55,14 @@ public class RedisConfig {
     public CacheManager cacheManager(RedisConnectionFactory factory) {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule()); // 날짜 처리
-        // PageImpl 역직렬화를 위한 설정
-        objectMapper.registerModule(new SpringDataJacksonConfiguration().pageModule());
+        objectMapper.registerModule(new SpringDataJacksonConfiguration().pageModule()); // PageImpl 처리
+
+        objectMapper.setVisibility(com.fasterxml.jackson.annotation.PropertyAccessor.ALL, com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.ANY);
+
+        objectMapper.activateDefaultTyping(
+                objectMapper.getPolymorphicTypeValidator(),
+                ObjectMapper.DefaultTyping.NON_FINAL
+        );
 
         RedisCacheConfiguration defaultCacheConfig = RedisCacheConfiguration.defaultCacheConfig()
                 .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
@@ -70,7 +76,7 @@ public class RedisConfig {
 
         return RedisCacheManager.builder(factory)
                 .cacheDefaults(defaultCacheConfig)
-                .withCacheConfiguration("reservations", listCacheConfig) // 목록만 30초
+                .withCacheConfiguration("reservations", listCacheConfig)
                 .build();
     }
 }
