@@ -18,7 +18,8 @@ public record ReservationDetailResponse(
     public record ProductDetailInfo(
             UUID productId,
             String productName,
-            int price
+            int price,
+            LocalDateTime endTime
     ) {}
 
     public record SellerDetailInfo(
@@ -35,7 +36,7 @@ public record ReservationDetailResponse(
         return new ReservationDetailResponse(
                 result.reservationId(),
                 result.status(),
-                new ProductDetailInfo(result.product().productId(), result.product().productName(), result.product().price()),
+                new ProductDetailInfo(result.product().productId(), result.product().productName(), result.product().price(),result.product().endTime()),
                 new SellerDetailInfo(result.seller().sellerId(), result.seller().sellerName()),
                 new BuyerDetailInfo(result.buyer().buyerId(), result.buyer().buyerName()),
                 result.createdAt(),

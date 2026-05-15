@@ -34,7 +34,9 @@ services:
     volumes:
       - ./promtail-config.yml:/etc/promtail/config.yml
       - ./logs:/logs
-    command: -config.file=/etc/promtail/config.yml
+    command: -config.file=/etc/promtail/config.yml -config.expand-env=true
+    env_file:
+      - .env
     networks:
       - pgsg-network
 

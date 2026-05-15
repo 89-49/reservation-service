@@ -19,7 +19,8 @@ public record ReservationDetailResult(
     public record ProductInfo(
             UUID productId,
             String productName,
-            int price
+            int price,
+            LocalDateTime endTime
     ) {}
 
     public record SellerInfo(
@@ -38,7 +39,8 @@ public record ReservationDetailResult(
                 new ProductInfo(
                         reservation.getProductInfo().getProductId(),
                         reservation.getProductInfo().getProductName(),
-                        reservation.getProductInfo().getProductPrice()
+                        reservation.getProductInfo().getProductPrice(),
+                        reservation.getProductInfo().getEndTime()
                 ),
                 new SellerInfo(
                         reservation.getSellerInfo().getSellerId(),
