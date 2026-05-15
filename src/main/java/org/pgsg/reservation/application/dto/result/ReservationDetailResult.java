@@ -1,5 +1,7 @@
 package org.pgsg.reservation.application.dto.result;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.pgsg.reservation.domain.model.reservation.Reservation;
 import org.pgsg.reservation.domain.model.reservation.ReservationStatus;
 
@@ -15,22 +17,72 @@ public record ReservationDetailResult(
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
+    @JsonCreator
+    public ReservationDetailResult(
+            @JsonProperty("reservationId") UUID reservationId,
+            @JsonProperty("status") ReservationStatus status,
+            @JsonProperty("product") ProductInfo product,
+            @JsonProperty("seller") SellerInfo seller,
+            @JsonProperty("buyer") BuyerInfo buyer,
+            @JsonProperty("createdAt") LocalDateTime createdAt,
+            @JsonProperty("updatedAt") LocalDateTime updatedAt
+            ) {
+        this.reservationId = reservationId;
+        this.status = status;
+        this.product = product;
+        this.seller = seller;
+        this.buyer = buyer;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+    }
+
     public static record ProductInfo(
             UUID productId,
             String productName,
             Integer price,
             LocalDateTime endTime
-    ) {}
+    ) {
+        @JsonCreator
+        public ProductInfo(
+                @JsonProperty("productId") UUID productId,
+                @JsonProperty("productName") String productName,
+                @JsonProperty("price") Integer price,
+                @JsonProperty("endTime") LocalDateTime endTime
+        ) {
+            this.productId = productId;
+            this.productName = productName;
+            this.price = price;
+            this.endTime = endTime;
+        }
+    }
 
     public static record SellerInfo(
             UUID sellerId,
             String sellerName
-    ) {}
+    ) {
+        @JsonCreator
+        public SellerInfo(
+                @JsonProperty("sellerId") UUID sellerId,
+                @JsonProperty("sellerName") String sellerName
+        ) {
+            this.sellerId = sellerId;
+            this.sellerName = sellerName;
+        }
+    }
 
     public static record BuyerInfo(
             UUID buyerId,
             String buyerName
-    ) {}
+    ) {
+        @JsonCreator
+        public BuyerInfo(
+                @JsonProperty("buyerId") UUID buyerId,
+                @JsonProperty("buyerName") String buyerName
+        ) {
+            this.buyerId = buyerId;
+            this.buyerName = buyerName;
+        }
+    }
 
     public static ReservationDetailResult from(Reservation reservation) {
         return new ReservationDetailResult(
