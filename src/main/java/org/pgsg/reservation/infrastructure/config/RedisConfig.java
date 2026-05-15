@@ -80,9 +80,6 @@ public class RedisConfig {
         objectMapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
 
         PolymorphicTypeValidator typeValidator = BasicPolymorphicTypeValidator.builder()
-                .allowIfBaseType("org.pgsg.")
-                .allowIfBaseType("java.util.")
-                .allowIfBaseType("java.lang.")
                 .allowIfBaseType(Object.class)
                 .build();
 
@@ -146,6 +143,14 @@ public class RedisConfig {
             List<Object> content = new ArrayList<>();
             if (contentNode != null && contentNode.isArray()) {
                 for (JsonNode element : contentNode) {
+                    if (element.has("@class")) {
+                        try {
+                            Class<?> targetClass = Class.forName(element.get("@class").asText());
+                            content.add(mapper.treeToValue(element, targetClass));
+                            continue;
+                        } catch (ClassNotFoundException e) {
+                        }
+                    }
                     content.add(mapper.treeToValue(element, Object.class));
                 }
             }
