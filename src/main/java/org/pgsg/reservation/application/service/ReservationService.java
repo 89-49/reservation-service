@@ -3,6 +3,7 @@ package org.pgsg.reservation.application.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.pgsg.reservation.application.dto.command.*;
+import org.pgsg.reservation.application.dto.result.CustomPage;
 import org.pgsg.reservation.application.dto.result.ReservationDetailResult;
 import org.pgsg.reservation.infrastructure.listener.dto.ReservationEventPublisher;
 import org.pgsg.reservation.application.dto.info.ReservationStateInfo;
@@ -86,13 +87,12 @@ public class ReservationService {
                     "(#query.status() != null ? #query.status().name() : '') + ':' + " +
                     "(#query.productId() != null ? #query.productId().toString() : '') + ':' + " +
                     "#pageable.pageNumber + ':' + #pageable.pageSize")
-    public Page<ReservationSearchResult> getSearchReservations(
+    public CustomPage<ReservationSearchResult> getSearchReservations(
             UUID userId,
             String role,
             ReservationSearchQuery query,
             Pageable pageable
     ) {
-        log.info("[🚨디버깅-목록조회] 메서드 진입 성공 (이 로그가 찍히면 DB 조회 스텝입니다)");
         try {
             // 권한에 따른 조회 범위 결정 로직을 도메인 모델로 전달
             SearchPolicy policy = reservationDomainService.getReservations(userId, role);
@@ -110,15 +110,11 @@ public class ReservationService {
 
             Page<Reservation> reservations = reservationRepository.findByCriteria(criteria, pageable);
 
-            log.info("Found {} reservations for query '{}'", reservations.getTotalElements(), query.toString());
-
             // Repository(QueryDSL)에 정책과 검색 조건을 함께 전달
             Page<ReservationSearchResult> result = reservations.map(ReservationSearchResult::from);
-            log.info("[🚨디버깅-목록조회] 변환 완료. 리턴 직전 - Result 데이터 수: {}", result.getContent().size());
-            return result;
+            return CustomPage.from(result);
 
         } catch (Exception e) {
-            log.error("[🔥디버깅-목록조회 킬러로그] DB 조회나 데이터 변환 중 진짜 에러 발생!!!", e);
             throw e;
         }
     }
@@ -131,7 +127,6 @@ public class ReservationService {
     )
     @Transactional(readOnly = true)
     public ReservationDetailResult getReservationDetail(UUID reservationId, UUID userId, String role) {
-        log.info("[🚨디버깅-상세조회] 메서드 진입 성공 (캐시가 비어있어 DB를 찌릅니다) - ID: {}", reservationId);
         try {
             // 엔티티 조회
             Reservation reservation = reservationRepository.findById(reservationId)
@@ -139,14 +134,9 @@ public class ReservationService {
             // 도메인 서비스를 통한 권한 검증
             reservationDomainService.validateDetailAccess(reservation, userId, role);
 
-            log.info("예약 상세 조회 완료 - ID: {}, 상태: {}", reservation.getId(), reservation.getStatus());
-
-            ReservationDetailResult result = ReservationDetailResult.from(reservation);
-            log.info("[🚨디버깅-상세조회] 변환 성공. 리턴 직전 객체 상태: {}", result);
-            return result;
+            return ReservationDetailResult.from(reservation);
 
         } catch (Exception e) {
-            log.error("[🔥디버깅-상세조회 킬러로그] 상세조회 로직 수행 중 진짜 에러 발생!!!", e);
             throw e;
         }
     }

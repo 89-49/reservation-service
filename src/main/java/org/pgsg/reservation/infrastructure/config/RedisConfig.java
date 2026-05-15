@@ -3,16 +3,11 @@ package org.pgsg.reservation.infrastructure.config;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JsonDeserializer;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import com.fasterxml.jackson.databind.jsontype.PolymorphicTypeValidator;
-import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -21,11 +16,6 @@ import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.geo.GeoModule;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheManager;
@@ -36,10 +26,7 @@ import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSeriali
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
-import java.io.IOException;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
 
 @Configuration
 @EnableCaching
@@ -56,8 +43,6 @@ public class RedisConfig {
         return new LettuceConnectionFactory(host, port);
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    @Primary
     @Bean(name = "redisObjectMapper")
     public ObjectMapper redisObjectMapper() {
         ObjectMapper objectMapper = new ObjectMapper();
@@ -65,11 +50,6 @@ public class RedisConfig {
         objectMapper.registerModule(new JavaTimeModule());
         objectMapper.registerModule(new GeoModule());
         objectMapper.registerModule(new ParameterNamesModule());
-
-        SimpleModule pageModule = new SimpleModule();
-        pageModule.addDeserializer((Class) Page.class, new JsonPageDeserializer());
-        pageModule.addDeserializer((Class) PageImpl.class, new JsonPageDeserializer());
-        objectMapper.registerModule(pageModule);
 
         objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
@@ -86,7 +66,7 @@ public class RedisConfig {
 
         objectMapper.activateDefaultTyping(
                 typeValidator,
-                ObjectMapper.DefaultTyping.EVERYTHING,
+                ObjectMapper.DefaultTyping.NON_FINAL,
                 JsonTypeInfo.As.PROPERTY
         );
 
@@ -132,43 +112,5 @@ public class RedisConfig {
                 .withCacheConfiguration("reservations", listCacheConfig)
                 .withCacheConfiguration("reservationDetail", defaultCacheConfig)
                 .build();
-    }
-
-    private static class JsonPageDeserializer extends JsonDeserializer<Page> {
-        @Override
-        public Page deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
-            ObjectMapper mapper = (ObjectMapper) p.getCodec();
-            JsonNode node = mapper.readTree(p);
-
-            JsonNode contentNode = node.get("content");
-            List<Object> content = new ArrayList<>();
-            if (contentNode != null && contentNode.isArray()) {
-                for (JsonNode element : contentNode) {
-                    if (element.has("@class")) {
-                        try {
-                            com.fasterxml.jackson.databind.JavaType javaType =
-                                    mapper.getTypeFactory().constructFromCanonical(element.get("@class").asText());
-                            content.add(mapper.treeToValue(element, javaType));
-                            continue;
-                        } catch (Exception e) {
-                        }
-                    }
-                    content.add(mapper.treeToValue(element, Object.class));
-                }
-            }
-
-            long totalElements = 0;
-            if (node.has("totalElements")) {
-                totalElements = node.get("totalElements").asLong();
-            } else if (node.has("total")) {
-                totalElements = node.get("total").asLong();
-            }
-
-            int page = node.has("number") ? node.get("number").asInt() : 0;
-            int size = node.has("size") ? node.get("size").asInt() : (content.isEmpty() ? 10 : content.size());
-
-            Pageable pageable = PageRequest.of(page, size);
-            return new PageImpl<>(content, pageable, totalElements);
-        }
     }
 }

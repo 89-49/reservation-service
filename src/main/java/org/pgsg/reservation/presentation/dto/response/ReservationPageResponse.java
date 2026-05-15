@@ -4,7 +4,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
-import org.springframework.data.domain.Page;
+import org.pgsg.reservation.application.dto.result.CustomPage;
 import java.util.List;
 
 @Getter
@@ -16,14 +16,14 @@ public class ReservationPageResponse<T> {
     private final long totalElements;
     private final int totalPages;
 
-    private ReservationPageResponse(Page<T> page) {
+    private ReservationPageResponse(CustomPage<T> page) {
         this.content = page.getContent();
-        this.pageNumber = page.getNumber();
+        this.pageNumber = page.getPageNumber();
         this.totalElements = page.getTotalElements();
-        this.totalPages = page.getTotalPages();
+        this.totalPages = (int) Math.ceil((double) page.getTotalElements() / page.getPageSize());
     }
 
-    public static <T> ReservationPageResponse<T> from(Page<T> page) {
+    public static <T> ReservationPageResponse<T> from(CustomPage<T> page) {
         return new ReservationPageResponse<>(page);
     }
 }
