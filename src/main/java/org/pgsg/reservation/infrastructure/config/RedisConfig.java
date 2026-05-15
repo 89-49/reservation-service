@@ -54,13 +54,18 @@ public class RedisConfig {
     @Bean
     public CacheManager cacheManager(RedisConnectionFactory factory) {
         ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule()); // 날짜 처리
-        objectMapper.registerModule(new SpringDataJacksonConfiguration().pageModule()); // PageImpl 처리
 
-        // 🚨 [핵심 추가] PageImpl 역직렬화를 막기 위한 가시성 및 믹스인 추가 튜닝
+        // 기본 날짜 및 Spring Data Page 모듈 등록
+        objectMapper.registerModule(new JavaTimeModule());
+        objectMapper.registerModule(new SpringDataJacksonConfiguration().pageModule());
+
+        //  record 및 일반 DTO 클래스의 필드/생성자 가시성을 무조건 열어줌
         objectMapper.setVisibility(com.fasterxml.jackson.annotation.PropertyAccessor.ALL, com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.ANY);
+        objectMapper.setVisibility(com.fasterxml.jackson.annotation.PropertyAccessor.CREATOR, com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.ANY);
 
-        // PageImpl 복원 시 유효성 검사 예외 방지 정책
+        // 역직렬화 시 생성자가 없거나 불일치해도 유연하게 매핑하도록 설정
+        objectMapper.configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
         objectMapper.activateDefaultTyping(
                 objectMapper.getPolymorphicTypeValidator(),
                 ObjectMapper.DefaultTyping.NON_FINAL
