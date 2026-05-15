@@ -108,6 +108,8 @@ public class ReservationService {
 
         Page<Reservation> reservations = reservationRepository.findByCriteria(criteria, pageable);
 
+        log.info("Found {} reservations for query '{}'", reservations.getTotalElements(), query.toString());
+
         // Repository(QueryDSL)에 정책과 검색 조건을 함께 전달
         return reservations.map(ReservationSearchResult::from);
     }
@@ -125,6 +127,8 @@ public class ReservationService {
                 .orElseThrow(() -> new RuntimeException("해당 예약을 찾을 수 없습니다. ID: " + reservationId));
         // 도메인 서비스를 통한 권한 검증
         reservationDomainService.validateDetailAccess(reservation, userId, role);
+
+        log.info("예약 상세 {}",reservation);
 
         return ReservationDetailResult.from(reservation);
     }
