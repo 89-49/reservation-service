@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import com.fasterxml.jackson.databind.jsontype.PolymorphicTypeValidator;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.CacheManager;
@@ -55,6 +56,7 @@ public class RedisConfig {
 
         objectMapper.registerModule(new JavaTimeModule());
         objectMapper.registerModule(new GeoModule());
+        objectMapper.registerModule(new ParameterNamesModule());
 
         objectMapper.addMixIn(org.springframework.data.domain.Page.class, PageMixIn.class);
         objectMapper.addMixIn(org.springframework.data.domain.PageImpl.class, PageMixIn.class);
@@ -103,6 +105,7 @@ public class RedisConfig {
     public CacheManager cacheManager(
             RedisConnectionFactory factory,
             @Qualifier("redisObjectMapper") ObjectMapper redisObjectMapper) {
+
         GenericJackson2JsonRedisSerializer jsonSerializer = new GenericJackson2JsonRedisSerializer(redisObjectMapper);
 
         RedisCacheConfiguration defaultCacheConfig = RedisCacheConfiguration.defaultCacheConfig()
@@ -118,6 +121,7 @@ public class RedisConfig {
         return RedisCacheManager.builder(factory)
                 .cacheDefaults(defaultCacheConfig)
                 .withCacheConfiguration("reservations", listCacheConfig)
+                .withCacheConfiguration("reservationDetail", defaultCacheConfig)
                 .build();
     }
 
