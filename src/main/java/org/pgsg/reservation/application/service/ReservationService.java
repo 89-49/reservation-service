@@ -109,7 +109,10 @@ public class ReservationService {
 
 
     // 예약 상세 조회
-    @Cacheable(value = "reservationDetail", key = "{#reservationId, #userId, #role}")
+    @Cacheable(
+            value = "reservationDetail",
+            key = "#reservationId.toString() + ':' + #userId.toString() + ':' + #role"
+    )
     @Transactional(readOnly = true)
     public ReservationDetailResult getReservationDetail(UUID reservationId, UUID userId, String role) {
         // 엔티티 조회
