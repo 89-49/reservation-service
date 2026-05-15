@@ -38,7 +38,10 @@ public record ReservationDetailResponse(
                 result.status(),
                 new ProductDetailInfo(result.product().productId(), result.product().productName(), result.product().price(),result.product().endTime()),
                 new SellerDetailInfo(result.seller().sellerId(), result.seller().sellerName()),
-                new BuyerDetailInfo(result.buyer().buyerId(), result.buyer().buyerName()),
+                result.buyer() != null ? new BuyerDetailInfo(
+                        result.buyer().buyerId(),
+                        result.buyer().buyerName()
+                ) : null,
                 result.createdAt(),
                 result.updatedAt()
         );

@@ -21,17 +21,21 @@ public record ReservationDetailResult(
             String productName,
             int price,
             LocalDateTime endTime
-    ) {}
+    ) {
+    }
 
     public record SellerInfo(
             UUID sellerId,
             String sellerName
-    ) {}
+    ) {
+    }
 
     public record BuyerInfo(
             UUID buyerId,
             String buyerName
-    ) {}
+    ) {
+    }
+
     public static ReservationDetailResult from(Reservation reservation) {
         return new ReservationDetailResult(
                 reservation.getId(),
@@ -46,10 +50,10 @@ public record ReservationDetailResult(
                         reservation.getSellerInfo().getSellerId(),
                         reservation.getSellerInfo().getSellerName()
                 ),
-                new BuyerInfo(
-                        reservation.getBuyerInfo() != null ? reservation.getBuyerInfo().getBuyerId() : null,
-                        reservation.getBuyerInfo() != null ? reservation.getBuyerInfo().getBuyerName() : "N/A"
-                ),
+                reservation.getBuyerInfo() != null ? new BuyerInfo(
+                        reservation.getBuyerInfo().getBuyerId(),
+                        reservation.getBuyerInfo().getBuyerName()
+                ) : null,
                 reservation.getCreatedAt(),
                 reservation.getModifiedAt()
         );
