@@ -39,7 +39,6 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Pattern;
 
 @Configuration
 @EnableCaching
@@ -81,8 +80,9 @@ public class RedisConfig {
         objectMapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
 
         PolymorphicTypeValidator typeValidator = BasicPolymorphicTypeValidator.builder()
-                .allowIfBaseType(Pattern.compile("^\\[Ljava\\.lang\\.Object;"))
-                .allowIfBaseType("org.pgsg")
+                .allowIfBaseType("org.pgsg.")
+                .allowIfBaseType("java.util.")
+                .allowIfBaseType("java.lang.")
                 .allowIfBaseType(Object.class)
                 .build();
 
