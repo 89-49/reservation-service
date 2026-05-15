@@ -54,6 +54,9 @@ spring:
     defer-datasource-initialization: true
 
 management:
+  metrics:
+    tags:
+      application: ${spring.application.name}
   tracing:
     sampling:
       probability: 1.0
