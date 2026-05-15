@@ -1,10 +1,13 @@
 package org.pgsg.reservation.infrastructure.config;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import com.fasterxml.jackson.databind.jsontype.PolymorphicTypeValidator;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -16,6 +19,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.geo.GeoModule;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheManager;
@@ -25,9 +29,9 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
-import org.springframework.data.web.config.SpringDataJacksonConfiguration;
 
 import java.time.Duration;
+import java.util.List;
 
 @Configuration
 @EnableCaching
@@ -49,27 +53,20 @@ public class RedisConfig {
     public ObjectMapper redisObjectMapper() {
         ObjectMapper objectMapper = new ObjectMapper();
 
-        // 1. 날짜 모듈 및 스프링 데이터 관련 공식 Jackson 모듈 등록
         objectMapper.registerModule(new JavaTimeModule());
         objectMapper.registerModule(new GeoModule());
 
-        // 🚨 기존의 부실했던 pageModule() 대신, 역직렬화가 완벽히 지원되는 PageJacksonModule을 강제 등록합니다.
-        objectMapper.registerModule(new org.springframework.data.web.config.SpringDataJacksonConfiguration.PageJacksonModule());
+        objectMapper.addMixIn(org.springframework.data.domain.Page.class, PageMixIn.class);
+        objectMapper.addMixIn(org.springframework.data.domain.PageImpl.class, PageMixIn.class);
 
-        // 2. 날짜 배열 쪼개짐 방지 및 타임스탬프 비활성화
         objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
-        // 3. 가시성 설정 (Jackson이 private 필드나 생성자에도 접근할 수 있도록 셋팅)
         objectMapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
         objectMapper.setVisibility(PropertyAccessor.CREATOR, JsonAutoDetect.Visibility.ANY);
         objectMapper.setVisibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY);
 
-        // 4. 없는 필드가 역직렬화 대상에 있어도 무시하고 정상 파싱
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
-        // 5. 다형성 타이핑 범위 교정
-        // 자바 표준 unmodifiable 리스트 등이 오염되어 터지는 걸 막기 위해,
-        // 오직 우리가 만든 패키지("org.pgsg")와 프레임워크 필수 객체(Object)만 타입 정보를 붙이도록 가이드라인을 좁힙니다.
         PolymorphicTypeValidator typeValidator = BasicPolymorphicTypeValidator.builder()
                 .allowIfBaseType("org.pgsg")
                 .allowIfBaseType(Object.class)
@@ -77,7 +74,7 @@ public class RedisConfig {
 
         objectMapper.activateDefaultTyping(
                 typeValidator,
-                ObjectMapper.DefaultTyping.NON_CONCRETE_AND_ARRAYS, // 최신 규격 반영
+                ObjectMapper.DefaultTyping.NON_CONCRETE_AND_ARRAYS,
                 com.fasterxml.jackson.annotation.JsonTypeInfo.As.PROPERTY
         );
 
@@ -121,5 +118,13 @@ public class RedisConfig {
                 .cacheDefaults(defaultCacheConfig)
                 .withCacheConfiguration("reservations", listCacheConfig)
                 .build();
+    }
+
+    @JsonDeserialize(as = PageImpl.class)
+    private interface PageMixIn {
+        @JsonCreator
+        void PageImpl(@JsonProperty("content") List<?> content,
+                      @JsonProperty("pageable") Pageable pageable,
+                      @JsonProperty("total") long total);
     }
 }
