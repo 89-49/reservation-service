@@ -19,7 +19,7 @@ public record ReservationDetailResult(
     public record ProductInfo(
             UUID productId,
             String productName,
-            int price,
+            Integer price,
             LocalDateTime endTime
     ) {
     }

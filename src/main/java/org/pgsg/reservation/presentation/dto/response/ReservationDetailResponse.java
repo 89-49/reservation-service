@@ -18,7 +18,7 @@ public record ReservationDetailResponse(
     public record ProductDetailInfo(
             UUID productId,
             String productName,
-            int price,
+            Integer price,
             LocalDateTime endTime
     ) {}
 
