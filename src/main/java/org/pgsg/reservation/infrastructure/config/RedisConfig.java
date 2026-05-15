@@ -145,10 +145,11 @@ public class RedisConfig {
                 for (JsonNode element : contentNode) {
                     if (element.has("@class")) {
                         try {
-                            Class<?> targetClass = Class.forName(element.get("@class").asText());
-                            content.add(mapper.treeToValue(element, targetClass));
+                            com.fasterxml.jackson.databind.JavaType javaType =
+                                    mapper.getTypeFactory().constructFromCanonical(element.get("@class").asText());
+                            content.add(mapper.treeToValue(element, javaType));
                             continue;
-                        } catch (ClassNotFoundException e) {
+                        } catch (Exception e) {
                         }
                     }
                     content.add(mapper.treeToValue(element, Object.class));
