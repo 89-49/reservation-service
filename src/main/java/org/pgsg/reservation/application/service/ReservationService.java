@@ -128,7 +128,7 @@ public class ReservationService {
         // 도메인 서비스를 통한 권한 검증
         reservationDomainService.validateDetailAccess(reservation, userId, role);
 
-        log.info("예약 상세 {}",reservation);
+        log.info("예약 상세 조회 완료 - ID: {}, 상태: {}", reservation.getId(), reservation.getStatus());
 
         return ReservationDetailResult.from(reservation);
     }
