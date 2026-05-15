@@ -31,25 +31,28 @@ public class ReservationExpiryScheduler {
      */
     @Scheduled(cron = "0 * * * * *")
     public void autoExpireReservations() {
-        LocalDateTime threshold = LocalDateTime.now().minusMinutes(60);
-        List<ReservationStatus> targetStatuses = List.of(ReservationStatus.PENDING, ReservationStatus.PAID);
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime threshold = now.minusMinutes(60); // 1시간 경과 기준
+        List<ReservationStatus> targetStatuses = List.of(ReservationStatus.AVAILABLE,ReservationStatus.PENDING, ReservationStatus.PAID);
 
-        // 1시간 동안 상태 변화가 없는 예약들 조회
-        List<Reservation> expiredReservations = reservationRepository.findAllByStatusInAndModifiedAtBefore(
+        // 1시간 경과했거나,endTime이 지났거나 둘 중 하나라도 해당되는 데이터 조회
+        List<Reservation> expiredReservations = reservationRepository.findAllByStatusInAndModifiedAtBeforeOrProductInfoEndTimeBefore(
                 targetStatuses,
-                threshold
+                threshold,
+                now
         );
 
         if (expiredReservations.isEmpty()) return;
 
-        log.info("시스템 자동 만료 처리 시작: {}건", expiredReservations.size());
+        log.info("시스템 자동 만료 대상 발견: {}건", expiredReservations.size());
 
         for (Reservation reservation : expiredReservations) {
             try {
-                ReservationExpireCommand command = createExpireCommand(reservation);
+                // 종료 사유를 판단하여 커맨드 생성
+                ReservationExpireCommand command = createExpireCommand(reservation, now);
                 reservationService.expireByAdmin(command);
 
-                log.info("예약 자동 만료 완료 (ID: {}, 상태: {})", reservation.getId(), reservation.getStatus());
+                log.info("예약 자동 종료 완료 (ID: {}, 종료사유: {})", reservation.getId(), command.reason());
             } catch (Exception e) {
                 log.error("예약 자동 만료 처리 중 오류 발생 (ID: {}): {}", reservation.getId(), e.getMessage());
             }
@@ -59,18 +62,26 @@ public class ReservationExpiryScheduler {
     /**
      * 예약 상태에 따른 적절한 취소 요청 객체를 생성하는 메서드
      */
-    private ReservationExpireCommand createExpireCommand(Reservation reservation) {
+    private ReservationExpireCommand createExpireCommand(Reservation reservation, LocalDateTime now) {
         ReservationStatus targetStatus;
         String reason;
 
-        if (reservation.getStatus() == ReservationStatus.PENDING) {
-            targetStatus = ReservationStatus.CANCELLED_BY_BUYER;
-            reason = "결제 제한 시간(1시간) 초과로 인한 자동 취소";
-        } else if (reservation.getStatus() == ReservationStatus.PAID) {
-            targetStatus = ReservationStatus.CANCELLED_BY_SELLER;
-            reason = "채팅 수락 제한 시간(1시간) 초과로 인한 자동 취소";
+        // endTime이 먼저 지났는지 확인
+        boolean isEndTimeExpired = reservation.getProductInfo().getEndTime().isBefore(now);
+
+        if (isEndTimeExpired) {
+            targetStatus = (reservation.getStatus() == ReservationStatus.PENDING)
+                    ? ReservationStatus.CANCELLED_BY_BUYER : ReservationStatus.CANCELLED_BY_SELLER;
+            reason = "타임딜 종료 시간 도달로 인한 자동 종료";
         } else {
-            throw new IllegalStateException("자동 만료 대상이 아닌 상태입니다: " + reservation.getStatus());
+            // 1시간 경과로 인한 종료인 경우
+            if (reservation.getStatus() == ReservationStatus.PENDING) {
+                targetStatus = ReservationStatus.CANCELLED_BY_BUYER;
+                reason = "결제 제한 시간(1시간) 초과로 인한 자동 취소";
+            } else {
+                targetStatus = ReservationStatus.CANCELLED_BY_SELLER;
+                reason = "채팅 수락 제한 시간(1시간) 초과로 인한 자동 취소";
+            }
         }
 
         return new ReservationExpireCommand(
