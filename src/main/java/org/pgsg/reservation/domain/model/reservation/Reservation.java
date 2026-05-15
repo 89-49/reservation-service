@@ -98,7 +98,7 @@ public class Reservation extends BaseEntity {
 
     // 구매자 취소: PENDING 또는 PAID 상태에서 구매자가 취소
     public void cancelByBuyer() {
-        validateStatus(ReservationStatus.PENDING, ReservationStatus.PAID);
+        validateStatus(ReservationStatus.AVAILABLE, ReservationStatus.PENDING, ReservationStatus.PAID);
         this.status = ReservationStatus.CANCELLED_BY_BUYER;
     }
 
