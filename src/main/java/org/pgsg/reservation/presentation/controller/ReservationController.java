@@ -54,8 +54,6 @@ public class ReservationController {
             @PageableDefault(size = 10) Pageable pageable
     ) {
 
-        log.info("테스트{}", role);
-
         ReservationSearchQuery query = new ReservationSearchQuery(
                 request.getSellerName(),
                 request.getBuyerName(),

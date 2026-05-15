@@ -57,8 +57,10 @@ public class RedisConfig {
         objectMapper.registerModule(new JavaTimeModule()); // 날짜 처리
         objectMapper.registerModule(new SpringDataJacksonConfiguration().pageModule()); // PageImpl 처리
 
+        // 🚨 [핵심 추가] PageImpl 역직렬화를 막기 위한 가시성 및 믹스인 추가 튜닝
         objectMapper.setVisibility(com.fasterxml.jackson.annotation.PropertyAccessor.ALL, com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.ANY);
 
+        // PageImpl 복원 시 유효성 검사 예외 방지 정책
         objectMapper.activateDefaultTyping(
                 objectMapper.getPolymorphicTypeValidator(),
                 ObjectMapper.DefaultTyping.NON_FINAL
@@ -69,6 +71,7 @@ public class RedisConfig {
                 .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(new GenericJackson2JsonRedisSerializer(objectMapper)))
                 .entryTtl(Duration.ofDays(1));
 
+        // 목록 조회 캐시 설정
         RedisCacheConfiguration listCacheConfig = RedisCacheConfiguration.defaultCacheConfig()
                 .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
                 .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(new GenericJackson2JsonRedisSerializer(objectMapper)))
