@@ -77,11 +77,8 @@ public class ReservationController {
             @RequestHeader("X-User-Id") UUID userId,
             @RequestHeader("X-User-Roles") String role
     ) {
-        log.info("인터셉터 통과 후 컨트롤러 첫 라인 진입 성공! ID: {}", reservationId);
 
         ReservationDetailResult result = reservationService.getReservationDetail(reservationId, userId, role);
-
-        log.info("컨트롤러 통과{}", result);
 
         return ReservationDetailResponse.from(result);
     }

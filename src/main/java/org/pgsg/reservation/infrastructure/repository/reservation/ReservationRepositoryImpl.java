@@ -56,13 +56,21 @@ public class ReservationRepositoryImpl implements ReservationRepository {
             return List.of();
         }
 
+        // 조건 1: 상태가 AVAILABLE 이면서 endTime이 지난 경우
+        BooleanExpression availableExpired = statusEq(ReservationStatus.AVAILABLE)
+                .and(endTimeBefore(now));
+
+        // 조건 2: 상태가 PENDING/PAID 이면서 (1시간이 경과했거나 OR endTime이 지난 경우)
+        BooleanExpression activeStatuses = reservation.get("status", ReservationStatus.class)
+                .in(ReservationStatus.PENDING, ReservationStatus.PAID);
+
+        BooleanExpression pendingOrPaidExpired = activeStatuses
+                .and(modifiedAtBefore(threshold).or(endTimeBefore(now)));
+
+        // 두 조건을 OR로 묶어서 조회합니다.
         return queryFactory
                 .selectFrom(reservation)
-                .where(
-                        statusIn(statuses), // 우선 대상 상태여야 함 (AND)
-                        modifiedAtBefore(threshold) // 수정 시간이 1시간 지났거나 (OR)
-                                .or(endTimeBefore(now)) // 상품 종료 시간이 지났거나
-                )
+                .where(availableExpired.or(pendingOrPaidExpired))
                 .fetch();
     }
 

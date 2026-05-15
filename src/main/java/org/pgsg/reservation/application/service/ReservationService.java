@@ -112,14 +112,11 @@ public class ReservationService {
     @Cacheable(value = "reservationDetail", key = "{#reservationId, #userId, #role}")
     @Transactional(readOnly = true)
     public ReservationDetailResult getReservationDetail(UUID reservationId, UUID userId, String role) {
-        log.info("조회{}", reservationId);
         // 엔티티 조회
         Reservation reservation = reservationRepository.findById(reservationId)
                 .orElseThrow(() -> new RuntimeException("해당 예약을 찾을 수 없습니다. ID: " + reservationId));
-        log.info("통과{}", reservation);
         // 도메인 서비스를 통한 권한 검증
         reservationDomainService.validateDetailAccess(reservation, userId, role);
-        log.info("권한 통과");
 
         return ReservationDetailResult.from(reservation);
     }
