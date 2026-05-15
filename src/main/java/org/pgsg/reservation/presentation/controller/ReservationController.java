@@ -79,6 +79,8 @@ public class ReservationController {
     ) {
         ReservationDetailResult result = reservationService.getReservationDetail(reservationId, userId, role);
 
+        log.info("컨트롤러 통과{}",result);
+
         return ReservationDetailResponse.from(result);
     }
 
