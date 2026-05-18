@@ -23,7 +23,11 @@ public enum ReservationErrorCode implements ErrorCode {
     // 서비스 예외 - 충돌 및 중복 (R007~R009 계열)
     DUPLICATE_RESERVATION("[reservation.exception.conflict.duplicate-reservation]", "productId"),
     ALREADY_APPLIED("[reservation.exception.conflict.already-applied]", "buyerId"),
-    ALREADY_EXISTS("[reservation.exception.conflict.already-exists]", "productId");
+    ALREADY_EXISTS("[reservation.exception.conflict.already-exists]", "productId"),
+
+    // 분산 락 관련 예외 (R010~R011 계열 추가)
+    RESERVATION_BUSY("[reservation.exception.lock.busy]", "reservationId"),
+    RESERVATION_INTERRUPTED("[reservation.exception.lock.interrupted]", "reservationId");
 
     private final String errorKey;
     private final String field;
