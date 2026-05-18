@@ -1,5 +1,9 @@
 server:
   port: ${SERVER_PORT:8085}
+  tomcat:
+    threads:
+      max: 60
+      min-spare: 20
 
 spring:
   main:
@@ -27,6 +31,12 @@ spring:
     url: ${DB_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 10
+      connection-timeout: 5000
+      idle-timeout: 600000
+      max-lifetime: 1800000
 
   kafka:
     bootstrap-servers: ${KAFKA_HOST:34.64.35.152:9092,34.22.94.155:9092,34.50.28.59:9092}
@@ -81,6 +91,7 @@ eureka:
     fetch-registry: true
     service-url:
       defaultZone: ${EUREKA_SERVER_URL:http://34.50.50.170:8761/eureka/}
+
 logging:
   file:
     name: /app/logs/reservation-service.log
