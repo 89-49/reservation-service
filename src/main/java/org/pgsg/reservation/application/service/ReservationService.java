@@ -136,7 +136,6 @@ public class ReservationService {
             @CacheEvict(value = "reservationDetail", key = "#command.reservationId().toString()"),
     })
     public ReservationCandidateInfo proceedApplyTransaction(ReservationApplyCommand command) {
-        Reservation savedReservation;
 
         // 예약 엔티티 조회
         Reservation reservation = reservationRepository.findById(command.reservationId())
@@ -147,21 +146,14 @@ public class ReservationService {
 
         // 변경사항 저장과 예외 감시
         try {
-            savedReservation = reservationRepository.save(reservation);
+            reservationRepository.save(reservation);
         } catch (DataIntegrityViolationException e) {
             if (isDuplicateApplyViolation(e)) {
                 throw new ReservationException(ReservationErrorCode.ALREADY_APPLIED);
             }
             throw e;
         }
-
-        // 방금 저장된 예약에서 추가한 후보자 찾기
-        ReservationCandidate savedCandidate = savedReservation.getCandidates().stream()
-                .filter(c -> c.getCandidateId().equals(command.userId()))
-                .findFirst()
-                .orElse(candidate);
-
-        return ReservationCandidateInfo.from(savedCandidate);
+        return ReservationCandidateInfo.from(candidate);
     }
 
     // 구매자 취소 처리 로직
