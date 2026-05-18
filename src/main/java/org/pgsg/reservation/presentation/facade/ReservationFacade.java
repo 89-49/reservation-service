@@ -25,9 +25,9 @@ public class ReservationFacade {
         RLock lock = redissonClient.getLock(lockKey);
 
         try {
-            // waitTime: 10초 (락 획득을 위해 대기할 시간)
+            // waitTime: 1.5초 (락 획득을 위해 대기할 시간)
             // leaseTime: -1초 (-1로 설정하여 Watchdog 활성화)
-            boolean available = lock.tryLock(10, -1, TimeUnit.SECONDS);
+            boolean available = lock.tryLock(1500, -1, TimeUnit.MILLISECONDS);
 
             if (!available) {
                 // 락 획득 실패 시 커넥션을 소모하지 않고 바로 예외를 던져 Tomcat 스레드 블로킹 방지
