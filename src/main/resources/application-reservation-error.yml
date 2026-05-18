@@ -33,12 +33,17 @@ error:
       status: 404
 
     # 중복 및 충돌
+    "[reservation.exception.conflict.duplicate-reservation]":
+      code: "R007"
+      message: "이미 해당 상품에 대한 예약 진행 내역이 존재합니다."
+      status: 409
+
     "[reservation.exception.conflict.already-exists]":
       code: "R009"
       message: "해당 상품으로 이미 생성된 예약 데이터가 존재합니다."
       status: 409
 
-    # 분산 락 및 동시성 제어 (추가)
+    # 분산 락 및 동시성 제어
     "[reservation.exception.lock.busy]":
       code: "R010"
       message: "현재 접속자가 많아 예약 요청을 처리할 수 없습니다. 잠시 후 다시 시도해주세요."
