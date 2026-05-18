@@ -64,7 +64,7 @@ public class ReservationDomainService {
                     Objects.equals(reservation.getSellerInfo().getSellerId(), userId);
 
             if (!isBuyer && !isSeller) {
-                throw new RuntimeException("해당 예약을 조회할 권한이 없습니다.");
+                throw new ReservationException(ReservationErrorCode.UNAUTHORIZED_ACCESS, "해당 예약을 조회할 권한이 없습니다.");
             }
         }
     }

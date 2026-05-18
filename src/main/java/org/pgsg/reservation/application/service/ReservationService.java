@@ -93,58 +93,47 @@ public class ReservationService {
             ReservationSearchQuery query,
             Pageable pageable
     ) {
-        try {
-            // 권한에 따른 조회 범위 결정 로직을 도메인 모델로 전달
-            SearchPolicy policy = reservationDomainService.getReservations(userId, role);
+        // 권한에 따른 조회 범위 결정 로직을 도메인 모델로 전달
+        SearchPolicy policy = reservationDomainService.getReservations(userId, role);
 
-            ReservationSearchCriteria criteria = new ReservationSearchCriteria(
-                    query.sellerName(),
-                    query.buyerName(),
-                    query.productName(),
-                    query.status(),
-                    query.productId(),
-                    null, // startDateTime
-                    null, // endDateTime
-                    policy
-            );
+        ReservationSearchCriteria criteria = new ReservationSearchCriteria(
+                query.sellerName(),
+                query.buyerName(),
+                query.productName(),
+                query.status(),
+                query.productId(),
+                null, // startDateTime
+                null, // endDateTime
+                policy
+        );
 
-            Page<Reservation> reservations = reservationRepository.findByCriteria(criteria, pageable);
+        Page<Reservation> reservations = reservationRepository.findByCriteria(criteria, pageable);
 
-            // Repository(QueryDSL)에 정책과 검색 조건을 함께 전달
-            Page<ReservationSearchResult> result = reservations.map(ReservationSearchResult::from);
-            return CustomPage.from(result);
-
-        } catch (Exception e) {
-            throw e;
-        }
+        return CustomPage.from(reservations.map(ReservationSearchResult::from));
     }
 
 
     // 예약 상세 조회
     @Cacheable(
             value = "reservationDetail",
-            key = "#reservationId.toString() + ':' + #userId.toString() + ':' + #role"
+            key = "#reservationId.toString()",
+            unless = "#result == null"
     )
     @Transactional(readOnly = true)
     public ReservationDetailResult getReservationDetail(UUID reservationId, UUID userId, String role) {
-        try {
-            // 엔티티 조회
-            Reservation reservation = reservationRepository.findById(reservationId)
-                    .orElseThrow(() -> new RuntimeException("해당 예약을 찾을 수 없습니다. ID: " + reservationId));
-            // 도메인 서비스를 통한 권한 검증
-            reservationDomainService.validateDetailAccess(reservation, userId, role);
+        // 엔티티 조회
+        Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new RuntimeException("해당 예약을 찾을 수 없습니다. ID: " + reservationId));
+        // 도메인 서비스를 통한 권한 검증
+        reservationDomainService.validateDetailAccess(reservation, userId, role);
 
-            return ReservationDetailResult.from(reservation);
-
-        } catch (Exception e) {
-            throw e;
-        }
+        return ReservationDetailResult.from(reservation);
     }
 
     // 예약 신청
     @Transactional
     @Caching(evict = {
-            @CacheEvict(value = "reservationDetail", allEntries = true),
+            @CacheEvict(value = "reservationDetail", key = "#command.reservationId().toString()"),
             @CacheEvict(value = "reservations", allEntries = true)
     })
     public ReservationCandidateInfo proceedApplyTransaction(ReservationApplyCommand command) {
@@ -179,7 +168,7 @@ public class ReservationService {
     // 구매자 취소 처리 로직
     @Transactional
     @Caching(evict = {
-            @CacheEvict(value = "reservationDetail", allEntries = true),
+            @CacheEvict(value = "reservationDetail", key = "#command.reservationId().toString()"),
             @CacheEvict(value = "reservations", allEntries = true)
     })
     public ReservationStateInfo cancelByBuyer(ReservationCancelCommand command) {
@@ -200,7 +189,7 @@ public class ReservationService {
     // 추후 결제 시스템 연동시 트리거 발동
     @Transactional
     @Caching(evict = {
-            @CacheEvict(value = "reservationDetail", allEntries = true),
+            @CacheEvict(value = "reservationDetail", key = "#command.reservationId().toString()"),
             @CacheEvict(value = "reservations", allEntries = true)
     })
     public ReservationStateInfo confirmPayment(ReservationConfirmCommand command) {
@@ -224,7 +213,7 @@ public class ReservationService {
     // 판매자 취소 로직
     @Transactional
     @Caching(evict = {
-            @CacheEvict(value = "reservationDetail", allEntries = true),
+            @CacheEvict(value = "reservationDetail", key = "#command.reservationId().toString()"),
             @CacheEvict(value = "reservations", allEntries = true)
     })
     public ReservationStateInfo cancelBySeller(ReservationCancelCommand command) {
@@ -246,7 +235,7 @@ public class ReservationService {
     // 예약 만료
     @Transactional
     @Caching(evict = {
-            @CacheEvict(value = "reservationDetail", allEntries = true),
+            @CacheEvict(value = "reservationDetail", key = "#command.reservationId().toString()"),
             @CacheEvict(value = "reservations", allEntries = true)
     })
     public ReservationStateInfo expireByAdmin(ReservationExpireCommand command) {
@@ -286,7 +275,7 @@ public class ReservationService {
     // 거래 완료
     @Transactional
     @Caching(evict = {
-            @CacheEvict(value = "reservationDetail", allEntries = true),
+            @CacheEvict(value = "reservationDetail", key = "#command.reservationId().toString()"),
             @CacheEvict(value = "reservations", allEntries = true)
     })
     public ReservationStateInfo confirmTrade(ReservationConfirmCommand command) {
