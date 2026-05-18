@@ -134,7 +134,6 @@ public class ReservationService {
     @Transactional
     @Caching(evict = {
             @CacheEvict(value = "reservationDetail", key = "#command.reservationId().toString()"),
-            @CacheEvict(value = "reservations", allEntries = true)
     })
     public ReservationCandidateInfo proceedApplyTransaction(ReservationApplyCommand command) {
         Reservation savedReservation;
@@ -148,7 +147,7 @@ public class ReservationService {
 
         // 변경사항 저장과 예외 감시
         try {
-            savedReservation = reservationRepository.saveAndFlush(reservation);
+            savedReservation = reservationRepository.save(reservation);
         } catch (DataIntegrityViolationException e) {
             if (isDuplicateApplyViolation(e)) {
                 throw new ReservationException(ReservationErrorCode.ALREADY_APPLIED);
@@ -169,7 +168,6 @@ public class ReservationService {
     @Transactional
     @Caching(evict = {
             @CacheEvict(value = "reservationDetail", key = "#command.reservationId().toString()"),
-            @CacheEvict(value = "reservations", allEntries = true)
     })
     public ReservationStateInfo cancelByBuyer(ReservationCancelCommand command) {
         Reservation reservation = findById(command.reservationId());
@@ -190,7 +188,6 @@ public class ReservationService {
     @Transactional
     @Caching(evict = {
             @CacheEvict(value = "reservationDetail", key = "#command.reservationId().toString()"),
-            @CacheEvict(value = "reservations", allEntries = true)
     })
     public ReservationStateInfo confirmPayment(ReservationConfirmCommand command) {
         Reservation reservation = findById(command.reservationId());
@@ -214,7 +211,6 @@ public class ReservationService {
     @Transactional
     @Caching(evict = {
             @CacheEvict(value = "reservationDetail", key = "#command.reservationId().toString()"),
-            @CacheEvict(value = "reservations", allEntries = true)
     })
     public ReservationStateInfo cancelBySeller(ReservationCancelCommand command) {
         Reservation reservation = findById(command.reservationId());
@@ -236,7 +232,6 @@ public class ReservationService {
     @Transactional
     @Caching(evict = {
             @CacheEvict(value = "reservationDetail", key = "#command.reservationId().toString()"),
-            @CacheEvict(value = "reservations", allEntries = true)
     })
     public ReservationStateInfo expireByAdmin(ReservationExpireCommand command) {
         Reservation reservation = findById(command.reservationId());
@@ -258,7 +253,6 @@ public class ReservationService {
     @Transactional
     @Caching(evict = {
             @CacheEvict(value = "reservationDetail", allEntries = true),
-            @CacheEvict(value = "reservations", allEntries = true)
     })
     public ReservationStateInfo completeReservation(ReservationConfirmCommand command) {
         // 예약 엔티티 조회
@@ -276,7 +270,6 @@ public class ReservationService {
     @Transactional
     @Caching(evict = {
             @CacheEvict(value = "reservationDetail", key = "#command.reservationId().toString()"),
-            @CacheEvict(value = "reservations", allEntries = true)
     })
     public ReservationStateInfo confirmTrade(ReservationConfirmCommand command) {
 

@@ -105,7 +105,7 @@ public class RedisConfig {
         RedisCacheConfiguration listCacheConfig = RedisCacheConfiguration.defaultCacheConfig()
                 .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
                 .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(jsonSerializer))
-                .entryTtl(Duration.ofHours(1));
+                .entryTtl(Duration.ofSeconds(3));
 
         return RedisCacheManager.builder(factory)
                 .cacheDefaults(defaultCacheConfig)
