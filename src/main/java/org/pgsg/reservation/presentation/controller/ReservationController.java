@@ -16,6 +16,7 @@ import org.pgsg.reservation.presentation.dto.request.ReservationCancelRequest;
 import org.pgsg.reservation.presentation.dto.request.ReservationCreateRequest;
 import org.pgsg.reservation.presentation.dto.request.ReservationSearchRequest;
 import org.pgsg.reservation.presentation.dto.response.*;
+import org.pgsg.reservation.presentation.facade.ReservationFacade;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.*;
@@ -29,6 +30,7 @@ import java.util.UUID;
 public class ReservationController {
 
     private final ReservationService reservationService;
+    private final ReservationFacade reservationFacade;
 
     // 예약 생성
     @PostMapping
@@ -90,7 +92,7 @@ public class ReservationController {
     ) {
         ReservationApplyCommand command = ReservationApplyCommand.of(reservationId, userId, nickname);
 
-        ReservationCandidateInfo info = reservationService.applyReservation(command);
+        ReservationCandidateInfo info = reservationFacade.applyReservation(command);
 
         return ReservationCandidateResponse.of(info, "예약 신청이 성공적으로 완료되었습니다.");
     }

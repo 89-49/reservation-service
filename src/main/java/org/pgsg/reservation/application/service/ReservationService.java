@@ -147,7 +147,7 @@ public class ReservationService {
             @CacheEvict(value = "reservationDetail", allEntries = true),
             @CacheEvict(value = "reservations", allEntries = true)
     })
-    public ReservationCandidateInfo applyReservation(ReservationApplyCommand command) {
+    public ReservationCandidateInfo proceedApplyTransaction(ReservationApplyCommand command) {
         Reservation savedReservation;
 
         // 예약 엔티티 조회
@@ -167,7 +167,7 @@ public class ReservationService {
             throw e;
         }
 
-        // 방금 저장된 예약에서 추하한 후보자 찾기
+        // 방금 저장된 예약에서 추가한 후보자 찾기
         ReservationCandidate savedCandidate = savedReservation.getCandidates().stream()
                 .filter(c -> c.getCandidateId().equals(command.userId()))
                 .findFirst()
