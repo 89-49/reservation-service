@@ -36,11 +36,6 @@ public class ReservationRepositoryImpl implements ReservationRepository {
     }
 
     @Override
-    public Reservation saveAndFlush(Reservation reservationEntity) {
-        return reservationJpaRepository.saveAndFlush(reservationEntity);
-    }
-
-    @Override
     public boolean existsByProductId(UUID productId) {
         return reservationJpaRepository.existsByProductInfoProductId(productId);
     }
