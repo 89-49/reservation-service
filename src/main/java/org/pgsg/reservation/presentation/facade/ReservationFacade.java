@@ -26,8 +26,8 @@ public class ReservationFacade {
 
         try {
             // waitTime: 10초 (락 획득을 위해 대기할 시간)
-            // leaseTime: 2초 (락 점유 최대 시간, 이후 자동 해제되어 데드락 방지)
-            boolean available = lock.tryLock(10, 2, TimeUnit.SECONDS);
+            // leaseTime: -1초 (-1로 설정하여 Watchdog 활성화)
+            boolean available = lock.tryLock(10, -1, TimeUnit.SECONDS);
 
             if (!available) {
                 // 락 획득 실패 시 커넥션을 소모하지 않고 바로 예외를 던져 Tomcat 스레드 블로킹 방지
