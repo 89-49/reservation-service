@@ -1,0 +1,323 @@
+package org.pgsg.reservation.domain.service;
+
+import lombok.RequiredArgsConstructor;
+import org.pgsg.reservation.domain.exception.ReservationErrorCode;
+import org.pgsg.reservation.domain.exception.ReservationException;
+import org.pgsg.reservation.domain.model.reservation.*;
+import org.pgsg.reservation.domain.model.reservationcandidate.ReservationCandidate;
+import org.pgsg.reservation.domain.model.reservationcandidate.ReservationCandidateStatus;
+import org.pgsg.reservation.domain.model.reservationhistory.ReservationHistory;
+import org.springframework.stereotype.Service;
+
+import java.util.*;
+
+@Service
+@RequiredArgsConstructor
+public class ReservationDomainService {
+
+    private final ReservationValidator reservationValidator;
+
+    /**
+     * 예약 생성 로직
+     * 각 VO들을 조합하여 예약 엔티티를 생성하고, 도메인 규칙을 검증
+     */
+    public Reservation createReservation(SellerInfo seller, ProductInfo product ) {
+
+        // 검증 로직
+        reservationValidator.validate(seller, product);
+
+        // 엔티티 생성
+        return Reservation.create(null, seller, product);
+    }
+
+    /**
+     * 예약 목록 조회 정책 획득 로직
+     * 권한에 따른 조회 범위를 검증하고 정책(Policy)을 결정
+     */
+    public SearchPolicy getReservations(UUID userId, String role) {
+        reservationValidator.validateSearchRequest(userId, role);
+
+        String normalizedRole = normalizeRole(role);
+
+        // MASTER, MANAGER는 전체 조회
+        if (isAdminRole(normalizedRole)) {
+            return SearchPolicy.all();
+        }
+
+        // 그 외 모든 일반 사용자(USER 등)는 본인 것만 조회 (판매 + 구매)
+        return SearchPolicy.user(userId);
+    }
+
+    /**
+     * 상세 조회 권한 검증
+     * 특정 사용자가 해당 예약에 접근할 수 있는지 비즈니스 규칙 검사
+     */
+    public void validateDetailAccess(Reservation reservation, UUID userId, String role) {
+        SearchPolicy policy = this.getReservations(userId, role);
+
+        if (policy.isUserFilter()) {
+            // Objects.equals는 파라미터가 null이어도 에러를 내지 않고 false를 반환해서 안전합니다.
+            boolean isBuyer = reservation.getBuyerInfo() != null &&
+                    Objects.equals(reservation.getBuyerInfo().getBuyerId(), userId);
+
+            boolean isSeller = reservation.getSellerInfo() != null &&
+                    Objects.equals(reservation.getSellerInfo().getSellerId(), userId);
+
+            if (!isBuyer && !isSeller) {
+                throw new ReservationException(ReservationErrorCode.UNAUTHORIZED_ACCESS, "해당 예약을 조회할 권한이 없습니다.");
+            }
+        }
+    }
+
+    /**
+     * 구매자 예약 신청
+     * 특정 사용자가 해당 예약에 접근할 수 있는지 비즈니스 규칙 검사
+     */
+    public ReservationCandidate addCandidate(Reservation reservation, UUID userId, String nickname) {
+        // 이미 후보자로 등록되어 있는지 확인
+        boolean isAlreadyApplied = reservation.getCandidates().stream()
+                .anyMatch(c -> c.getCandidateId().equals(userId));
+        if (isAlreadyApplied) {
+            throw new ReservationException(ReservationErrorCode.ALREADY_APPLIED);
+        }
+
+        // 예약이 활성 상태(AVAILABLE)인지 확인
+        if (reservation.getStatus() != ReservationStatus.AVAILABLE) {
+            throw new ReservationException(ReservationErrorCode.CANNOT_CHANGE_STATUS);
+        }
+
+        // 현재 구매자가 없는 상태(reopen된 상태)라면 내가 바로 구매자가 변경
+        boolean shouldBeSelectedImmediately = (reservation.getBuyerInfo() == null);
+
+        // 후보자 생성 및 애그리거트에 추가
+        ReservationCandidate candidate = ReservationCandidate.create(reservation, userId, nickname);
+
+        reservation.addCandidate(candidate);
+
+        // 만약 첫 번째 후보자라면 바로 구매자로 선정하는 로직
+        if (shouldBeSelectedImmediately) {
+            reservation.changeToNextBuyer(candidate);
+        }
+
+        return candidate;
+    }
+
+    /**
+     * 구매자 사유 취소 도메인 로직
+     * 구매자 혹은 관리자가 호출하며, 취소 후 다음 대기자에게 예약 권한을 승계함
+     */
+    public ReservationHistory cancelByBuyer(Reservation reservation, UUID userId, String role, String reason) {
+        validateReason(reason);
+
+        // 권한 및 상태 검증
+        reservationValidator.validateCancelByBuyer(reservation, userId, role);
+
+        ReservationStatus previousStatus = reservation.getStatus();
+
+        // 엔티티 상태 변경
+        reservation.cancelByBuyer();
+
+        // 다음 구매자 승계 처리
+        handleNextBuyerSequence(reservation);
+
+        // 이력 객체 생성
+        return ReservationHistory.of(
+                reservation.getId(),
+                previousStatus,
+                reservation.getStatus(),
+                reason,
+                userId
+        );
+    }
+
+    /**
+     * 결제 완료 로직
+     * 관리자가 호출 or 결제 서비스에서 이벤트를 받을 경우, 상품 상태를 (PENDING -> PAID)로 변경
+     */
+    public ReservationHistory confirmPayment(Reservation reservation, UUID userId, String role) {
+
+        // 권한 검증 (관리자 혹은 시스템 권한)
+        reservationValidator.validateConfirmPayment(reservation, userId, role);
+
+        ReservationStatus previousStatus = reservation.getStatus();
+
+        // 상태 전이 검증 (PENDING일 때만 결제 완료 가능)
+        reservation.markAsPaid();
+
+        return ReservationHistory.of(
+                reservation.getId(),
+                previousStatus,
+                reservation.getStatus(),
+                "결제 승인 완료: 상태가 PAID로 변경되었습니다.", // reason
+                userId
+        );
+    }
+
+    /**
+     * 판매자 사유 취소 도메인 로직
+     * 판매자 혹은 관리자가 호출하며, 취소 후 예약 비활성화 후 상품 삭제 요청
+     */
+    public ReservationHistory cancelBySeller(Reservation reservation, UUID userId, String role, String reason) {
+        validateReason(reason);
+
+        // 권한 및 상태 검증
+        reservationValidator.validateCancelBySeller(reservation, userId, role);
+
+        ReservationStatus previousStatus = reservation.getStatus();
+
+        // 엔티티 상태 변경
+        reservation.cancelBySeller();
+
+        // 이력 객체 생성
+        return ReservationHistory.of(
+                reservation.getId(),
+                previousStatus,
+                reservation.getStatus(),
+                reason,
+                userId
+        );
+    }
+
+    /**
+     * 예약 만료 로직
+     * 예약이 만료 될 시 작동 혹은 시스템 문제로 관리자 임의 실행
+     */
+    public ReservationHistory expireByAdmin(
+            Reservation reservation,
+            UUID adminId,
+            String role,
+            ReservationStatus targetStatus,
+            String reason
+    ) {
+        validateReason(reason);
+
+        // 관리자 권한 및 취소 가능 상태인지 확인
+        reservationValidator.validateSearchRequest(adminId, role);
+        if (!isAdminRole(normalizeRole(role))) {
+            throw new ReservationException(ReservationErrorCode.UNAUTHORIZED_ACCESS);
+        }
+        reservationValidator.validateCommonCancel(reservation, adminId);
+
+        // 이력 기록을 위해 변경 전 상태 보관
+        ReservationStatus previousStatus = reservation.getStatus();
+
+        // 상태 변경
+        if (targetStatus == ReservationStatus.CANCELLED_BY_BUYER) {
+            // 구매자 사유 취소로 취급 -> 차순위 승계(handleNextBuyer) 로직 작동
+            reservation.cancelByBuyer();
+
+            // 여기서 직접 차순위 로직을 호출하거나, 이벤트를 발행
+            handleNextBuyerSequence(reservation);
+
+        } else if (targetStatus == ReservationStatus.CANCELLED_BY_SELLER) {
+            // 판매자 사유 취소로 취급 -> 승계 없이 최종 종료
+            reservation.cancelBySeller();
+        } else {
+            // 그 외 정의되지 않은 상태 변경 시도 시 예외
+            throw new ReservationException(ReservationErrorCode.INVALID_INPUT);
+        }
+
+        // 3. 결과물(History) 생성 및 반환
+        return ReservationHistory.of(
+                reservation.getId(),
+                previousStatus,
+                reservation.getStatus(),
+                reason,
+                adminId
+        );
+    }
+
+    /**
+     * 예약 완료
+     * 예약 완료 도메인 로직 및 이력 객체 생성
+     */
+    public ReservationHistory completeReservation(Reservation reservation, UUID userId ,String role) {
+        // 권한 검증 로직
+        boolean isSeller = reservation.getSellerInfo() != null && Objects.equals(reservation.getSellerInfo().getSellerId(), userId);
+        boolean isAdmin = isAdminRole(normalizeRole(role));
+        if (!isAdmin && !isSeller) {
+            throw new ReservationException(ReservationErrorCode.UNAUTHORIZED_ACCESS);
+        }
+
+        ReservationStatus previousStatus = reservation.getStatus();
+
+        // 엔티티 비즈니스 로직 실행 (PAID -> COMPLETED)
+        // 규칙: 예약 대기 상태일 때만 완료 가능
+        reservation.complete();
+
+        // 저장할 이력 객체 생성 및 반환
+        return ReservationHistory.of(
+                reservation.getId(),
+                previousStatus,
+                ReservationStatus.COMPLETED,
+                "판매자 채팅 수락으로 인한 예약 완료",
+                userId
+        );
+    }
+
+    /**
+     * 거래 완료
+     * 거래 완료 도메인 로직 및 이력 객체 생성
+     */
+    public ReservationHistory confirmTrade(Reservation reservation, UUID userId, String role) {
+        // 규칙: 오직 ADMIN(시스템 포함)만 거래 확정을 할 수 있다.
+        if (!isAdminRole(normalizeRole(role))) {
+            throw new ReservationException(ReservationErrorCode.UNAUTHORIZED_ACCESS, "관리자만 거래를 확정할 수 있습니다.");
+        }
+
+        // 상태 변경 전 상태 보관 (이력 기록용)
+        ReservationStatus previousStatus = reservation.getStatus();
+
+        // 엔티티 비즈니스 로직 실행 (COMPLETED -> CLOSED)
+        reservation.confirmTrade();
+
+        // 이력(History) 객체 생성 및 반환
+        return ReservationHistory.of(
+                reservation.getId(),
+                previousStatus,
+                reservation.getStatus(),
+                "거래가 최종 확정되었습니다.",
+                userId
+        );
+    }
+
+    private String normalizeRole(String role) {
+        if (role == null) return "";
+        String upperRole = role.trim().toUpperCase(Locale.ROOT);
+        if (upperRole.startsWith("ROLE_")) {
+            return upperRole.substring(5).trim();
+        }
+        return upperRole;
+    }
+
+    private boolean isAdminRole(String normalizedRole) {
+        return "ADMIN".equals(normalizedRole) || "MANAGER".equals(normalizedRole) || "MASTER".equals(normalizedRole);
+    }
+
+    /**
+     * 다음 구매자 승계 내부 로직
+     */
+    private void handleNextBuyerSequence(Reservation reservation) {
+        // WAITING 상태 중 생성일 오름차순 -> ID 오름차순
+        // 대기자 중 가장 우선 우선순위가 높은 사람을 찾음
+        Optional<ReservationCandidate> nextCandidate = reservation.getCandidates().stream()
+                .filter(c -> c.getStatus() == ReservationCandidateStatus.WAITING)
+                .min(Comparator.comparing(ReservationCandidate::getCreatedAt)
+                        .thenComparing(ReservationCandidate::getId));
+
+        if (nextCandidate.isPresent()) {
+            // a. 대기자가 있으면 승계 처리
+            reservation.changeToNextBuyer(nextCandidate.get());
+        } else {
+            // b. 대기자가 없으면 다시 누구나 신청 가능한 상태로 복구
+            reservation.reopen();
+        }
+    }
+
+    private void validateReason(String reason) {
+        if (reason == null || reason.isBlank()) {
+            throw new ReservationException(ReservationErrorCode.INVALID_INPUT);
+        }
+    }
+
+}

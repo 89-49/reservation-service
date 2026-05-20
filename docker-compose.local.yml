@@ -1,0 +1,70 @@
+services:
+  reservation-service:
+    container_name: reservation-service
+    build:
+      context: .
+      args:
+        - GPR_USER=${GPR_USER}
+        - GPR_TOKEN=${GPR_TOKEN}
+    env_file:
+      - .env.local
+    environment:
+      - "SERVER_PORT=${SERVER_PORT:-8085}"
+      - "SPRING_CLOUD_CONFIG_ENABLED=false"
+      - "SPRING_CLOUD_CONFIG_DISCOVERY_ENABLED=false"
+      - "EUREKA_CLIENT_ENABLED=false"
+      - "EUREKA_CLIENT_REGISTER_WITH_EUREKA=false"
+      - "EUREKA_CLIENT_FETCH_REGISTRY=false"
+      - "DB_URL=jdbc:postgresql://reservation-db:5432/${DB_NAME:-reservation_db}"
+      - "REDIS_HOST=reservation-redis"
+      - "KAFKA_SSL_PATH=/app/ssl/kafka.server.truststore.jks"
+    volumes:
+      - ./src/main/resources/ssl:/app/ssl:ro
+    ports:
+      - "${SERVER_PORT:-8085}:${SERVER_PORT:-8085}"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - pgsg-network
+
+  db:
+    image: postgres:17
+    container_name: reservation-db
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: ${DB_NAME:-reservation_db}
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    volumes:
+      - postgres-reservation-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - pgsg-network
+
+  redis:
+    image: redis:7.2
+    container_name: reservation-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - pgsg-network
+
+networks:
+  pgsg-network:
+    name: pgsg-network
+
+volumes:
+  postgres-reservation-data:
