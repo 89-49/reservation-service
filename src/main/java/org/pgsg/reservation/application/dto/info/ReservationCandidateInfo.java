@@ -5,7 +5,6 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 public record ReservationCandidateInfo(
-        Long id,
         UUID candidateId,
         String candidateNickname,
         String status,
@@ -13,7 +12,6 @@ public record ReservationCandidateInfo(
 ) {
     public static ReservationCandidateInfo from(ReservationCandidate candidate) {
         return new ReservationCandidateInfo(
-                candidate.getId(),
                 candidate.getCandidateId(),
                 candidate.getCandidateNickname(),
                 candidate.getStatus().name(),
